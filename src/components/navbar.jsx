@@ -13,6 +13,9 @@ function RepairSystem() {
     const handleRequestRepair = () => {
         navigate('/repair-request');  // นี่คือเส้นทางที่คุณต้องการนำทางไป
     };
+    const Administrator = ()=>{
+        navigate('/Administrator');
+    };
 
     return (
         <div>
@@ -41,10 +44,10 @@ function RepairSystem() {
                             <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 512 512"><path fill="currentColor" d="M496 496H16V16h32v448h448z"></path><path fill="currentColor" d="M192 432H80V208h112Zm144 0H224V160h112Zm143.64 0h-112V96h112Z"></path></svg>
                             <span>สถิติแจ้งซ่อม</span>
                         </a>
-                        <a href="#" className="border-b-2 border-transparent hover:border-white mx-1.3 sm:mx-7 flex items-center space-x-1">
+                        <button onClick={Administrator} className="border-b-2 border-transparent hover:border-white mx-1.3 sm:mx-7 flex items-center space-x-1">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 512 512"><path fill="currentColor" d="M352 96h64c17.7 0 32 14.3 32 32v256c0 17.7-14.3 32-32 32h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32h64c53 0 96-43 96-96V128c0-53-43-96-96-96h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32m-9.4 182.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l73.4 73.4H32c-17.7 0-32 14.3-32 32s14.3 32 32 32h210.7l-73.4 73.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l128-128z"></path></svg>
                             <span>Administrator</span>
-                        </a>
+                        </button>
                     </div>
 
                     {/* Hamburger Icon for Mobile */}
