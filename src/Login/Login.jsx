@@ -72,7 +72,6 @@ function Login() {
                     <div className="flex items-center justify-between">
                         <button
                             type="submit"
-
                             className="bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-xl focus:outline-none focus:shadow-outline w-full"
                             style={{ fontFamily: 'MyCustomFont', fontSize: 24 }}>
                             เข้าสู่ระบบ
