@@ -4,6 +4,21 @@ import { useNavigate } from 'react-router-dom';
 function RepairStatus() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const navigate = useNavigate();
+    const [repairDate, setRepairDate] = useState('');
+    const [repairCode, setRepairCode] = useState('');
+    const [status, setStatus] = useState('');
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        // ฟังก์ชันนี้สามารถส่งค่ากรองไปยัง backend หรือประมวลผลภายในหน้าเว็บ
+        console.log({ repairDate, repairCode, status });
+    };
+
+    /*************  ✨ Codeium Command ⭐  *************/
+    /**
+     * Toggle the menu visibility
+     */
+    /******  b0e996ba-3907-4e8b-af99-14f8f8ff53ed  *******/
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
     };
@@ -86,6 +101,99 @@ function RepairStatus() {
                     </div>
                 )}
             </nav>
+            <div className='mt-10 mx-12'>
+                <div className="mx-1.3 sm:mx-7 flex items-center space-x-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 512 512"><path fill="currentColor" d="M152.1 38.2c9.9 8.9 10.7 24 1.8 33.9l-72 80c-4.4 4.9-10.6 7.8-17.2 7.9s-12.9-2.4-17.6-7L7 113c-9.3-9.4-9.3-24.6 0-34s24.6-9.4 33.9 0L63 101.1l55.1-61.2c8.9-9.9 24-10.7 33.9-1.8zm0 160c9.9 8.9 10.7 24 1.8 33.9l-72 80c-4.4 4.9-10.6 7.8-17.2 7.9s-12.9-2.4-17.6-7L7 273c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0L63 261.2l55.1-61.2c8.9-9.9 24-10.7 33.9-1.8zM224 96c0-17.7 14.3-32 32-32h224c17.7 0 32 14.3 32 32s-14.3 32-32 32H256c-17.7 0-32-14.3-32-32m0 160c0-17.7 14.3-32 32-32h224c17.7 0 32 14.3 32 32s-14.3 32-32 32H256c-17.7 0-32-14.3-32-32m-64 160c0-17.7 14.3-32 32-32h288c17.7 0 32 14.3 32 32s-14.3 32-32 32H192c-17.7 0-32-14.3-32-32M48 368a48 48 0 1 1 0 96a48 48 0 1 1 0-96"></path></svg>
+                    <span style={{ fontFamily: 'MyCustomFont', fontSize: 32 }}>สถานะการแจ้งซ่อม</span>
+                </div>
+            </div>
+            <form onSubmit={handleSubmit} className="flex max-w-lg mx-20 mt-8">
+                <div className="flex space-x-4">
+                    {/* วันที่แจ้งซ่อม */}
+                    <div className="relative input-with-placeholder">
+                        <input
+                            type="text"
+                            className="peer block w-full px-3 py-2 bg-[#F5F5F5] border-2 border-gray-400 rounded-2xl focus:outline-none focus:border-[#ff5f00] placeholder-transparent"
+                            id="repairDate"
+                            value={repairDate}
+                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18,color: 'black' }}
+                            onChange={(e) => setRepairDate(e.target.value)}
+                            placeholder=""
+                            required
+                        />
+                        <label
+                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                            htmlFor="repairDate"
+                            class="absolute left-3 top-2 transition-all duration-300 text-gray-500 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-4 peer-focus:scale-90 peer-focus:px-1 peer-focus:bg-[#F5F5F5] peer-focus:text-black peer-valid:-translate-y-4 peer-valid:scale-90 peer-valid:px-1 peer-valid:bg-[#F5F5F5] peer-valid:text-black"                     >
+                            วันที่แจ้งซ่อม
+                        </label>
+                    </div>
+                </div>
+
+                {/* รหัสแจ้งซ่อม */}
+                <div className="relative input-with-placeholder">
+                    <input
+                        type="text"
+                        className="peer block w-full px-3 py-2 bg-[#F5F5F5] border-2 border-gray-400 rounded-2xl focus:outline-none focus:border-[#ff5f00] placeholder-transparent"
+                        value={repairCode}
+                        onChange={(e) => setRepairCode(e.target.value)}
+                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18,color: 'black' }}
+                        placeholder=""
+                        required
+                    />
+                    <label
+                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                        htmlFor="repairCode"
+                        class="absolute left-3 top-2 transition-all duration-300 text-gray-500 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-4 peer-focus:scale-90 peer-focus:px-1 peer-focus:bg-[#F5F5F5] peer-focus:text-black peer-valid:-translate-y-4 peer-valid:scale-90 peer-valid:px-1 peer-valid:bg-[#F5F5F5] peer-valid:text-black">
+                        รหัสแจ้งซ่อม
+                    </label>
+                </div>
+
+                {/* สถานะ */}
+                <div className="relative mb-3 flex" data-twe-input-wrapper-init>
+                    <select
+                        className="peer block min-h-[auto] w-full rounded border-2 bg-white bg-transparent px-3 py-[0.32rem] leading-[1.6] outline-none transition-all duration-200 ease-linear focus:border-primary focus:placeholder:opacity-100 peer-focus:text-primary data-[twe-input-state-active]:placeholder:opacity-100 motion-reduce:transition-none dark:text-white dark:placeholder:text-neutral-300 dark:autofill:shadow-autofill dark:peer-focus:text-primary [&:not([data-twe-input-placeholder-active])]:placeholder:opacity-0"
+                        id="status"
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value)}
+                        
+                    >
+                        <option style={{fontFamily: 'MyCustomFont2', fontSize: 18, color: 'black'}} value="">เลือกสถานะ</option>
+                        <option style={{fontFamily: 'MyCustomFont2', fontSize: 18, color: 'black'}} value="กำลังดำเนินการ">กำลังดำเนินการ</option>
+                        <option style={{fontFamily: 'MyCustomFont2', fontSize: 18, color: 'black'}} value="เสร็จสิ้น">เสร็จสิ้น</option>
+                    </select>
+                    <label
+                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18}}
+                        htmlFor="status"
+                        className="pointer-events-none absolute left-3 top-0 mb-0 max-w-[90%] origin-[0_0] truncate pt-[0.37rem] leading-[1.6] text-neutral-500 transition-all duration-200 ease-out peer-focus:-translate-y-[0.9rem] peer-focus:scale-[0.8] peer-focus:text-primary peer-data-[twe-input-state-active]:-translate-y-[0.9rem] peer-data-[twe-input-state-active]:scale-[0.8] motion-reduce:transition-none dark:text-neutral-400 dark:peer-focus:text-primary"
+                    >
+                        สถานะ
+                    </label>
+                </div>
+
+                <button
+                    type="submit"
+                    className="bg-[#ff7b00] text-white mb-4 py-2 px-4 rounded hover:bg-orange-600"
+                >
+                    ค้นหา
+                </button>
+
+            </form>
+
+            <div className='container mx-20 mt-4' >
+                <table className='table-auto w-[1350px] border-collapse overflow-hidden rounded-xl'>
+                    <thead>
+                        <tr className='bg-[#ff7b00] text-white' style={{ fontFamily: 'MyCustomFont', fontSize: 24 }}>
+                            <th className="px-4 py-2">รหัสแจ้งซ่อม</th>
+                            <th className="px-4 py-2">วันที่แจ้งซ่อม</th>
+                            <th className="px-4 py-2">ชื่อผู้แจ้ง</th>
+                            <th className="px-4 py-2">ปัญหาที่พบ</th>
+                            <th className="px-4 py-2">สถานะ</th>
+                            <th className="px-4 py-2">รายละเอียด</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
         </div>
     )
 
