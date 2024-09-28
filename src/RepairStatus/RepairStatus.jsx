@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { MdOutlineCalendarMonth } from "react-icons/md"; // สไตล์สำหรับปฏิทิน
+import axios from 'axios';
 
 function RepairStatus() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -7,6 +11,48 @@ function RepairStatus() {
     const [repairDate, setRepairDate] = useState('');
     const [repairCode, setRepairCode] = useState('');
     const [status, setStatus] = useState('');
+    const [focused, setFocused] = useState(false);
+    const [loading, setLoading] = useState(true);
+    
+    
+    const [statuses, setStatuses] = useState({
+        waiting: 0,
+        repairing: 0,
+        waitingParts: 0,
+        cannotRepair: 0,
+        finished: 0,
+    });
+    // จำลองการดึงข้อมูลจาก backend
+    useEffect(() => {
+        const fetchStatuses = async () => {
+            // จำลอง API call
+            const response = await fetch("https://example.com/api/status"); // สมมติ URL backend
+            const data = await response.json();
+
+            setStatuses({
+                waiting: data.waiting,        // รอการดำเนินการ
+                repairing: data.repairing,    // กำลังซ่อม
+                waitingParts: data.waitingParts, // รออะไหล่
+                cannotRepair: data.cannotRepair, // ซ่อมไม่ได้
+                finished: data.finished,      // เสร็จสิ้น
+            });
+        };
+
+        fetchStatuses();
+    }, []);
+
+  useEffect(() => {
+    // ดึงข้อมูลจาก Backend (API)
+    axios.get('/api/repairs') // URL ที่เชื่อมต่อกับ Backend
+      .then((response) => {
+        setRepairData(response.data); // เก็บข้อมูลที่ได้รับมาจาก Backend
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error fetching repair data:', error);
+        setLoading(false);
+      });
+  }, []);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -14,11 +60,6 @@ function RepairStatus() {
         console.log({ repairDate, repairCode, status });
     };
 
-    /*************  ✨ Codeium Command ⭐  *************/
-    /**
-     * Toggle the menu visibility
-     */
-    /******  b0e996ba-3907-4e8b-af99-14f8f8ff53ed  *******/
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
     };
@@ -101,71 +142,89 @@ function RepairStatus() {
                     </div>
                 )}
             </nav>
-            <div className='mt-10 mx-12'>
+            <div className='flex justify-between mt-10 mx-12'>
                 <div className="mx-1.3 sm:mx-7 flex items-center space-x-1">
                     <svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 512 512"><path fill="currentColor" d="M152.1 38.2c9.9 8.9 10.7 24 1.8 33.9l-72 80c-4.4 4.9-10.6 7.8-17.2 7.9s-12.9-2.4-17.6-7L7 113c-9.3-9.4-9.3-24.6 0-34s24.6-9.4 33.9 0L63 101.1l55.1-61.2c8.9-9.9 24-10.7 33.9-1.8zm0 160c9.9 8.9 10.7 24 1.8 33.9l-72 80c-4.4 4.9-10.6 7.8-17.2 7.9s-12.9-2.4-17.6-7L7 273c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0L63 261.2l55.1-61.2c8.9-9.9 24-10.7 33.9-1.8zM224 96c0-17.7 14.3-32 32-32h224c17.7 0 32 14.3 32 32s-14.3 32-32 32H256c-17.7 0-32-14.3-32-32m0 160c0-17.7 14.3-32 32-32h224c17.7 0 32 14.3 32 32s-14.3 32-32 32H256c-17.7 0-32-14.3-32-32m-64 160c0-17.7 14.3-32 32-32h288c17.7 0 32 14.3 32 32s-14.3 32-32 32H192c-17.7 0-32-14.3-32-32M48 368a48 48 0 1 1 0 96a48 48 0 1 1 0-96"></path></svg>
                     <span style={{ fontFamily: 'MyCustomFont', fontSize: 32 }}>สถานะการแจ้งซ่อม</span>
+                </div>
+                <div className="justify-center mr-14 mt-4 text-lg" style={{ fontFamily: 'MyCustomFont2', fontSize: 24 }}>
+                    <span>สถานะที่ค้างอยู่: </span>
+                    <span className="text-[#FF9900]">รอดำเนินการ ({statuses.waiting}) </span>
+                    <span className="text-[#2CD9FF]">กำลังซ่อม ({statuses.repairing}) </span>
+                    <span className="text-[#007CEE]">รออะไหล่ ({statuses.waitingParts}) </span>
+                    <span className="text-red-500">ซ่อมไม่ได้ ({statuses.cannotRepair}) </span>
+                    <span className="text-green-500">เสร็จเรียบร้อย ({statuses.finished}) </span>
                 </div>
             </div>
             <form onSubmit={handleSubmit} className="flex max-w-lg mx-20 mt-8">
                 <div className="flex space-x-4">
                     {/* วันที่แจ้งซ่อม */}
-                    <div className="relative input-with-placeholder">
-                        <input
-                            type="text"
+                    <div className="relative input-with-placeholder" style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}>
+                        <DatePicker
+                            selected={repairDate}
+                            onChange={(date) => setRepairDate(date)}
+                            dateFormat="dd/MM/yyyy"
                             className="peer block w-full px-3 py-2 bg-[#F5F5F5] border-2 border-gray-400 rounded-2xl focus:outline-none focus:border-[#ff5f00] placeholder-transparent"
-                            id="repairDate"
-                            value={repairDate}
-                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18,color: 'black' }}
-                            onChange={(e) => setRepairDate(e.target.value)}
-                            placeholder=""
-                            required
+                            placeholderText="เลือกวันที่"
+                            popperPlacement="bottom"
                         />
                         <label
                             style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
-                            htmlFor="repairDate"
-                            class="absolute left-3 top-2 transition-all duration-300 text-gray-500 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-4 peer-focus:scale-90 peer-focus:px-1 peer-focus:bg-[#F5F5F5] peer-focus:text-black peer-valid:-translate-y-4 peer-valid:scale-90 peer-valid:px-1 peer-valid:bg-[#F5F5F5] peer-valid:text-black"                     >
+                            className={`absolute left-3 top-2 transition-all duration-300 text-gray-500 bg-[#F5F5F5]
+          ${repairDate ? '-translate-y-5 scale-90' : 'translate-y-[0] scale-100'} 
+          peer-focus:-translate-y-4 peer-focus:scale-90 peer-focus:left-3 peer-focus:bg-[#F5F5F5] peer-focus:text-black`}
+                        >
                             วันที่แจ้งซ่อม
                         </label>
+
+                        {/* ไอคอนปฏิทิน */}
+                        <span className="absolute right-3 top-2 my-1 text-gray-500">
+                            <MdOutlineCalendarMonth />
+                        </span>
                     </div>
                 </div>
 
                 {/* รหัสแจ้งซ่อม */}
-                <div className="relative input-with-placeholder">
+                <div className="relative input-with-placeholder mx-2">
                     <input
                         type="text"
                         className="peer block w-full px-3 py-2 bg-[#F5F5F5] border-2 border-gray-400 rounded-2xl focus:outline-none focus:border-[#ff5f00] placeholder-transparent"
                         value={repairCode}
                         onChange={(e) => setRepairCode(e.target.value)}
-                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18,color: 'black' }}
+                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18, color: 'black' }}
                         placeholder=""
                         required
                     />
                     <label
                         style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
                         htmlFor="repairCode"
-                        class="absolute left-3 top-2 transition-all duration-300 text-gray-500 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-4 peer-focus:scale-90 peer-focus:px-1 peer-focus:bg-[#F5F5F5] peer-focus:text-black peer-valid:-translate-y-4 peer-valid:scale-90 peer-valid:px-1 peer-valid:bg-[#F5F5F5] peer-valid:text-black">
+                        class="absolute left-3 top-2 transition-all duration-300 text-gray-500 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-4 peer-focus:scale-90 peer-focus:px-1 peer-focus:bg-[#F5F5F5] peer-focus:text-gray-500 peer-valid:-translate-y-4 peer-valid:scale-90 peer-valid:px-1 peer-valid:bg-[#F5F5F5] peer-valid:text-gray-500">
                         รหัสแจ้งซ่อม
                     </label>
                 </div>
 
                 {/* สถานะ */}
-                <div className="relative mb-3 flex" data-twe-input-wrapper-init>
+                <div className="relative input-with-placeholder">
                     <select
-                        className="peer block min-h-[auto] w-full rounded border-2 bg-white bg-transparent px-3 py-[0.32rem] leading-[1.6] outline-none transition-all duration-200 ease-linear focus:border-primary focus:placeholder:opacity-100 peer-focus:text-primary data-[twe-input-state-active]:placeholder:opacity-100 motion-reduce:transition-none dark:text-white dark:placeholder:text-neutral-300 dark:autofill:shadow-autofill dark:peer-focus:text-primary [&:not([data-twe-input-placeholder-active])]:placeholder:opacity-0"
-                        id="status"
+                        className={`peer block  rounded-2xl border-2 border-gray-400 bg-[#F5F5F5] px-3 py-[0.8rem] leading-[1.6] outline-none transition-all duration-200 ease-linear focus:border-orange-500 ${status === "" ? "bg-[#F5F5F5]" : ""}`}
                         value={status}
                         onChange={(e) => setStatus(e.target.value)}
-                        
+                        onBlur={() => setFocused(false)}
+                        onFocus={() => setFocused(true)}
+                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18, color: 'black' }}
                     >
-                        <option style={{fontFamily: 'MyCustomFont2', fontSize: 18, color: 'black'}} value="">เลือกสถานะ</option>
-                        <option style={{fontFamily: 'MyCustomFont2', fontSize: 18, color: 'black'}} value="กำลังดำเนินการ">กำลังดำเนินการ</option>
-                        <option style={{fontFamily: 'MyCustomFont2', fontSize: 18, color: 'black'}} value="เสร็จสิ้น">เสร็จสิ้น</option>
+                        <option value=""></option>
+                        <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
+                        <option value="กำลังซ่อม">กำลังซ่อม</option>
+                        <option value="รออะไหล่">รออะไหล่</option>
+                        <option value="ซ่อมไม่ได้">ซ่อมไม่ได้</option>
+                        <option value="เสร็จสิ้น">เสร็จสิ้น</option>
+
                     </select>
                     <label
-                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18}}
-                        htmlFor="status"
-                        className="pointer-events-none absolute left-3 top-0 mb-0 max-w-[90%] origin-[0_0] truncate pt-[0.37rem] leading-[1.6] text-neutral-500 transition-all duration-200 ease-out peer-focus:-translate-y-[0.9rem] peer-focus:scale-[0.8] peer-focus:text-primary peer-data-[twe-input-state-active]:-translate-y-[0.9rem] peer-data-[twe-input-state-active]:scale-[0.8] motion-reduce:transition-none dark:text-neutral-400 dark:peer-focus:text-primary"
+                        className={`absolute left-3 top-2 text-gray-500 transition-all duration-300
+                    ${focused || status !== "" ? "-translate-y-4 scale-90 bg-[#F5F5F5] px-1 text-black" : "translate-y-0 scale-100"}`}
+                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
                     >
                         สถานะ
                     </label>
@@ -173,7 +232,7 @@ function RepairStatus() {
 
                 <button
                     type="submit"
-                    className="bg-[#ff7b00] text-white mb-4 py-2 px-4 rounded hover:bg-orange-600"
+                    className="bg-[#ff7b00] text-white mb-4 py-3 px-4 rounded-2xl hover:bg-orange-600 mx-2"
                 >
                     ค้นหา
                 </button>
@@ -181,6 +240,9 @@ function RepairStatus() {
             </form>
 
             <div className='container mx-20 mt-4' >
+                {loading ? (
+                    <p>กำลังโหลด...</p>
+                ) : (
                 <table className='table-auto w-[1350px] border-collapse overflow-hidden rounded-xl'>
                     <thead>
                         <tr className='bg-[#ff7b00] text-white' style={{ fontFamily: 'MyCustomFont', fontSize: 24 }}>
@@ -192,7 +254,38 @@ function RepairStatus() {
                             <th className="px-4 py-2">รายละเอียด</th>
                         </tr>
                     </thead>
+                    <tbody>
+                        {repairDate.length === 0 ? (
+                            <tr>
+                                <td colSpan="6" className="text-center py-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>ไม่มีข้อมูลการแจ้งซ่อม</td>
+                            </tr>
+                        ):(
+                            repairData.map((repair, index) => (
+                                <tr key={index} className="text-center border-b">
+                                  <td className="py-2 px-4">{repair.code}</td>
+                                  <td className="py-2 px-4">{repair.reportDate}</td>
+                                  <td className="py-2 px-4">{repair.reporterName}</td>
+                                  <td className="py-2 px-4">{repair.issue}</td>
+                                  <td className={`py-2 px-4 ${
+                                    repair.status === 'รอดำเนินการ' ? 'text-orange-400' :
+                                    repair.status === 'กำลังซ่อม' ? 'text-blue-400' :
+                                    repair.status === 'รออะไหล่' ? 'text-green-400' :
+                                    repair.status === 'ซ่อมไม่ได้' ? 'text-red-400' :
+                                    repair.status === 'เสร็จเรียบร้อย' ? 'text-green-500' : ''
+                                  }`}>
+                                    {repair.status}
+                                  </td>
+                                  <td className="py-2 px-4">
+                                    <button className="bg-yellow-500 text-white px-4 py-1 rounded-full">
+                                      รายละเอียด
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))
+                        )}
+                    </tbody>
                 </table>
+            )}
             </div>
         </div>
     )

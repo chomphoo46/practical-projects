@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import DatePicker from 'react-datepicker';
 import { useNavigate } from 'react-router-dom';
 
 function RepairRequest() {
@@ -15,12 +16,14 @@ function RepairRequest() {
     const navigate = useNavigate();
     // useEffect สำหรับตั้งวันที่ปัจจุบันเป็นค่าเริ่มต้นของฟิลด์ "วันที่แจ้งซ่อม"
     useEffect(() => {
-        const today = new Date().toISOString().split('T')[0]; // ได้รูปแบบวันที่ YYYY-MM-DD
+        const today = new Date(); // สร้างวันใหม่
+        const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`; // รูปแบบ DD/MM/YYYY
         setFormData((prevData) => ({
             ...prevData,
-            reportDate: today,
+            reportDate: formattedDate, // ตั้งค่า reportDate เป็นวันที่ที่ปรับรูปแบบแล้ว
         }));
     }, []);
+
     const handleFileChange = (event) => {
         const file = event.target.files[0]; // ดึงไฟล์แรกที่ถูกเลือก
 
@@ -186,17 +189,17 @@ function RepairRequest() {
                         />
                     </div>
 
-                    <div className="mb-4">
+                    <div className="mb-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}>
                         <label className="block text-black" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>วันที่แจ้งซ่อม
                             <span className='text-red-500'> *</span>
                         </label>
-                        <input
+                        <DatePicker
                             type="date"
                             name="reportDate"
-                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                            dateFormat="dd/MM/yyyy"
                             value={formData.reportDate}
                             onChange={handleChange}
-                            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff5f00]"
+                            className="w-[400px] px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff5f00]"
                             required
                         />
                     </div>
