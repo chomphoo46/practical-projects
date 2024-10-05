@@ -1,36 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import logo from '../assets/sci_kmitl_logo_1.png';
 
 
-function RepairSystem() {
+
+function ProfileAdmin() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [userEmail, setUserEmail] = useState('');
     const navigate = useNavigate();
+    const [userEmail, setUserEmail] = useState('');
     useEffect(() => {
-        // ดึงอีเมลจาก localStorage
+        // ดึงข้อมูล user_email จาก localStorage
         const email = localStorage.getItem('user_email');
         if (email) {
-            setUserEmail(email); // ถ้ามีค่าใน localStorage จะตั้งค่าลง state
+            setUserEmail(email);
         }
     }, []);
 
     const handleLogout = () => {
         localStorage.removeItem('access_Token');
         localStorage.removeItem('user_email');
-        setUserEmail('');
-        setIsDropdownOpen(false);
-        // รีเซ็ตค่า userEmail เป็นค่าว่าง
+        setUserEmail(''); // รีเซ็ตค่า userEmail เป็นค่าว่าง
     };
     const toggleDropdown = () => {
-        // ถ้ายังไม่ได้ login (userEmail ไม่มีค่า)
-        if (!userEmail) {
-            // นำผู้ใช้ไปที่หน้า login
-            navigate('/Administrator');
-        } else {
-            // ถ้า login แล้วให้แสดง dropdown
-            setIsDropdownOpen(!isDropdownOpen);
-        }
+        setIsDropdownOpen(!isDropdownOpen);
     };
 
     // Toggle menu visibility
@@ -44,10 +37,7 @@ function RepairSystem() {
         navigate('/Administrator');
     };
     const hadleRepairStatus = () => {
-        navigate('/repair-status')
-    }
-    const hadleManageUser = () => {
-        navigate('/manager-users')
+        navigate('/repair-status');
     }
 
 
@@ -58,7 +48,7 @@ function RepairSystem() {
                 <div className="container mx-auto flex justify-between items-center">
                     {/* Logo */}
                     <div>
-                        <img src="src/assets/sci_kmitl_logo_1.png" alt="Logo" className="h-10 md:h-12" />
+                        <img src={logo} alt="Logo" className="h-10 md:h-12" />
                     </div>
 
                     {/* Desktop Menu */}
@@ -81,9 +71,9 @@ function RepairSystem() {
                         </a>
                         <button onClick={toggleDropdown} className="border-b-2 border-transparent hover:border-white mx-1.3 sm:mx-7 flex items-center space-x-1">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 512 512"><path fill="currentColor" d="M352 96h64c17.7 0 32 14.3 32 32v256c0 17.7-14.3 32-32 32h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32h64c53 0 96-43 96-96V128c0-53-43-96-96-96h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32m-9.4 182.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l73.4 73.4H32c-17.7 0-32 14.3-32 32s14.3 32 32 32h210.7l-73.4 73.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l128-128z"></path></svg>
-                            <span>{userEmail ? userEmail : 'เข้าสู่ระบบ'}</span>
+                            <span>{userEmail ? userEmail : 'Administrator'}</span>
                         </button>
-                        {userEmail && isDropdownOpen && (
+                        {isDropdownOpen && (
                             <div className="absolute right-32 mt-10 z-10 w-40 bg-white rounded-md shadow-lg">
                                 <div className="py-1">
                                     <button
@@ -93,16 +83,10 @@ function RepairSystem() {
                                     >
                                         Logout
                                     </button>
-                                    <button
-                                        onClick={hadleManageUser}
-                                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
-                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                                    >
-                                        จัดการผู้ใช้
-                                    </button>
                                 </div>
                             </div>
                         )}
+
                     </div>
 
                     {/* Hamburger Icon for Mobile */}
@@ -131,12 +115,11 @@ function RepairSystem() {
                             สถิติแจ้งซ่อม
                         </a>
                         <button onClick={Administrator} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
-                            เข้าสู่ระบบ
+                            <span>{userEmail ? userEmail : "Administrator"}</span>
                         </button>
                     </div>
                 )}
             </nav>
-
             {/* Hero Section */}
             <div className="relative w-full h-48 md:h-64 lg:h-72 bg-cover bg-center" style={{ backgroundImage: `url('src/assets/sci 1.png')` }}>
                 <div className="absolute inset-0 flex justify-center items-center">
@@ -189,7 +172,7 @@ function RepairSystem() {
                 </div>
             </div>
         </div>
-    );
-}
+    )
 
-export default RepairSystem;
+}
+export default ProfileAdmin

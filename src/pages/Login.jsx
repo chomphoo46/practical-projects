@@ -9,18 +9,52 @@ function Login() {
     const [error, setError] = useState("");
     const navigate = useNavigate();
 
-    const handleLogin = (e) => {
+
+    const handleLogin = async (e) => {
         e.preventDefault();
         // ตรวจสอบว่ากรอกข้อมูลครบหรือไม่
         if (!email || !password) {
             setError("กรุณากรอกอีเมลและรหัสผ่าน");
-        } else {
-            // หากข้อมูลครบถ้วน เปลี่ยนหน้าไปยัง Dashboard (หรือหน้าที่ต้องการ)
-            setError("");
-            history.push("/dashboard"); // เปลี่ยนหน้าไปที่ '/dashboard'
+        }
+        try {
+            const response = await fetch('https://project.xviper.xyz/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: email,
+                    password: password,
+                }),
+            });
+            console.log("Response status:", response.status); // ตรวจสอบ response status
+
+            // เช็คสถานะของ response
+            if (response.status === 200) {
+                // หากล็อกอินสำเร็จ
+                const data = await response.json();
+                setError("");
+                console.log("Login success:", data);
+                // บันทึก token ลงใน localStorage
+                localStorage.setItem('access_Token', data.token);
+                localStorage.setItem('user_email', email); // เก็บอีเมล
+                      
+                // ตรวจสอบการทำงานของ navigate
+                console.log("Navigating to ProfileAdmin...");
+                navigate("/ProfileAdmin"); // เปลี่ยนหน้าไปยังหน้าแรก
+            } else if (response.status === 401) {
+                // หากอีเมลหรือรหัสผ่านผิด
+                setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+            } else {
+                // ข้อผิดพลาดอื่นๆ ที่ไม่ใช่ 200 หรือ 401
+                setError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+            }
+        } catch (error) {
+            console.error("Error during login:", error);
+            setError("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
         }
     };
-    
+
 
     return (
         <div className="bg-cover bg-center h-screen flex justify-center items-center" style={{ backgroundImage: `url('/src/assets/sci.png')` }}>
@@ -31,7 +65,7 @@ function Login() {
                     <p className="text-black" style={{ fontFamily: 'MycustomFont2', fontSize: 20 }}>สู่ Fix-Sci พวกเราพร้อมให้บริการคุณแล้ว!</p>
                 </div>
 
-                <form className="mt-6">
+                <form className="mt-6" onSubmit={handleLogin}>
                     <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password"
                         style={{ fontFamily: 'MycustomFont2', fontSize: 16 }}>อีเมล</label>
                     <div className="relative mb-4">
@@ -53,7 +87,7 @@ function Login() {
                         รหัสผ่าน
                     </label>
 
-                    <div className="relative mb-6" onSubmit={handleLogin}>
+                    <div className="relative mb-6">
                         <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
                             <MdOutlineLock />
                         </span>
