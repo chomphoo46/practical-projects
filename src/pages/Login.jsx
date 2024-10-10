@@ -38,7 +38,7 @@ function Login() {
                 // บันทึก token ลงใน localStorage
                 localStorage.setItem('access_Token', data.token);
                 localStorage.setItem('user_email', email); // เก็บอีเมล
-                      
+
                 // ตรวจสอบการทำงานของ navigate
                 console.log("Navigating to ProfileAdmin...");
                 navigate("/ProfileAdmin"); // เปลี่ยนหน้าไปยังหน้าแรก
@@ -53,6 +53,10 @@ function Login() {
             console.error("Error during login:", error);
             setError("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
         }
+    };
+    const handleGoogleLogin = () => {
+        // ทำการ redirect ไปยัง API ที่ให้ไว้สำหรับล็อกอินผ่าน Google
+        window.location.href = 'https://project.xviper.xyz/api/auth/google';
     };
 
 
@@ -115,7 +119,9 @@ function Login() {
 
                 <div className="text-center mt-4">
                     <p className="text-gray-500" style={{ fontFamily: 'MyCustomFont2' }}>หรือ</p>
-                    <button className="mt-2 flex justify-center items-center border border-gray-300 rounded-xl w-full py-2"
+                    <button
+                        onClick={handleGoogleLogin}
+                        className="mt-2 flex justify-center items-center border border-gray-300 rounded-xl w-full py-2"
                         style={{ fontFamily: 'MycustomFont2', fontSize: 16 }}>
                         <img src="src\assets\google 1.png" alt="Google Icon" className="w-5 h-5 mr-2" />
                         Login with Google

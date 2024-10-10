@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
+import { FaEdit, FaSave } from 'react-icons/fa';
 import 'react-datepicker/dist/react-datepicker.css';
-import { MdOutlineCalendarMonth } from "react-icons/md"; // สไตล์สำหรับปฏิทิน
-import axios from 'axios';
+
 
 function RepairStatus() {
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [userEmail, setUserEmail] = useState('');
@@ -20,8 +21,24 @@ function RepairStatus() {
             issue: 'หน้าจอไม่ติด',
             status: 'รอดำเนินการ',
         },
+        {
+            code: 'LVC-004719',
+            reportDate: '15 ก.ค 2567',
+            reporterName: 'สมชาย มั่งมี',
+            issue: 'หน้าจอไม่ติด',
+            status: 'รอดำเนินการ',
+        },
     ]);
-
+    const issues = [
+        {
+            description: 'คอมพิวเตอร์เปิดไม่ติด',
+            code: 'LVC-004719',
+            date: '15 กรกฎาคม 2567 เวลา 10:38:59',
+            email: '65050171@kmitl.ac.th',
+            location: 'อาคารพระจอมเกล้า ห้อง 313 ชั้น 3',
+        },
+        // Additional rows can be added here
+    ];
     useEffect(() => {
         // ดึงอีเมลจาก localStorage
         const email = localStorage.getItem('user_email');
@@ -29,11 +46,20 @@ function RepairStatus() {
             setUserEmail(email); // ถ้ามีค่าใน localStorage จะตั้งค่าลง state
         }
     }, []);
+    const openModal = () => {
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+    };
 
     const handleLogout = () => {
         localStorage.removeItem('access_Token');
         localStorage.removeItem('user_email');
-        setUserEmail(''); // รีเซ็ตค่า userEmail เป็นค่าว่าง
+        setUserEmail('');
+        setIsDropdownOpen(false);
+        // รีเซ็ตค่า userEmail เป็นค่าว่าง
     };
     const toggleDropdown = () => {
         // ถ้ายังไม่ได้ login (userEmail ไม่มีค่า)
@@ -107,6 +133,44 @@ function RepairStatus() {
     const Administrator = () => {
         navigate('/Administrator');
     };
+    const hadleManageUser = () => {
+        navigate('/manager-users')
+    }
+    // สร้าง state สำหรับเก็บค่า "ผู้ดำเนินการ"
+    const [isEditing, setIsEditing] = useState(false);
+    const [editableValue, setEditableValue] = useState('นายธนทร เกิดเปี่ยม');
+    const [reports, setReports] = useState([
+        {
+            label: 'วันที่ดำเนินการ',
+            value: '02 กันยายน เวลา 05:48:25',
+        },
+        {
+            label: 'ผู้ดำเนินการ',
+            value: 'นายธนทร เกิดเปี่ยม',
+        },
+        {
+            label: 'สาเหตุ/วิธีแก้ไข',
+            value: '-',
+        },
+        {
+            label: 'สถานะการดำเนินการ',
+            value: 'เสร็จเรียบร้อย',
+        },
+    ]);
+    const handleEditClick = () => {
+        setIsEditing(!isEditing);
+    };
+
+    const handleInputChange = (value) => {
+        setEditableValue(value); // Update the input value while editing
+    };
+    const handleSave = () => {
+        const updatedReports = reports.map((report) =>
+            report.label === 'ผู้ดำเนินการ' ? { ...report, value: editableValue } : report
+        );
+        setReports(updatedReports);
+        setIsEditing(false); // Exit edit mode after saving
+    };
 
 
     return (
@@ -141,7 +205,7 @@ function RepairStatus() {
                             <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 512 512"><path fill="currentColor" d="M352 96h64c17.7 0 32 14.3 32 32v256c0 17.7-14.3 32-32 32h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32h64c53 0 96-43 96-96V128c0-53-43-96-96-96h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32m-9.4 182.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l73.4 73.4H32c-17.7 0-32 14.3-32 32s14.3 32 32 32h210.7l-73.4 73.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l128-128z"></path></svg>
                             <span>{userEmail ? userEmail : 'เข้าสู่ระบบ'}</span>
                         </button>
-                        {isDropdownOpen && (
+                        {userEmail && isDropdownOpen && (
                             <div className="absolute right-32 mt-10 z-10 w-40 bg-white rounded-md shadow-lg">
                                 <div className="py-1">
                                     <button
@@ -150,6 +214,13 @@ function RepairStatus() {
                                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                                     >
                                         Logout
+                                    </button>
+                                    <button
+                                        onClick={hadleManageUser}
+                                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                    >
+                                        จัดการผู้ใช้
                                     </button>
                                 </div>
                             </div>
@@ -262,7 +333,7 @@ function RepairStatus() {
                         onFocus={() => setFocused(true)}
                         style={{ fontFamily: 'MyCustomFont2', fontSize: 18, color: 'black' }}
                     >
-                        <option value=""></option>
+                        <option hidden value=""></option>
                         <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
                         <option value="กำลังซ่อม">กำลังซ่อม</option>
                         <option value="รออะไหล่">รออะไหล่</option>
@@ -324,9 +395,157 @@ function RepairStatus() {
                                             {repair.status}
                                         </td>
                                         <td className="py-2 px-4">
-                                            <button className="bg-[#FFD200] text-white px-4 py-1 rounded-full">
+                                            <button
+                                                onClick={openModal}
+                                                style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}
+                                                className="bg-[#FFD200] text-black px-4 py-1 rounded-full">
                                                 รายละเอียด
                                             </button>
+                                            {/* Modal */}
+                                            {isModalOpen && (
+                                                <div
+                                                    id="default-modal"
+                                                    tabIndex="-1"
+                                                    aria-hidden="true"
+                                                    className="overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 flex justify-center items-center w-full h-full bg-gray-800 bg-opacity-50"
+                                                >
+                                                    <div className="relative p-4 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+                                                        <div className="relative bg-white shadow h-full">
+                                                            {/* Modal header */}
+                                                            <div className="flex items-center p-2 border-b rounded-t">
+                                                                <div>
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 512 512"><path fill="currentColor" d="M78.6 5c-9.5-7.4-23-6.5-31.6 2L7 47c-8.5 8.5-9.4 22-2.1 31.6l80 104c4.5 5.9 11.6 9.4 19 9.4H158l109 109c-14.7 29-10 65.4 14.3 89.6l112 112c12.5 12.5 32.8 12.5 45.3 0l64-64c12.5-12.5 12.5-32.8 0-45.3l-112-112c-24.2-24.2-60.6-29-89.6-14.3L192 158v-54.1c0-7.5-3.5-14.5-9.4-19zM19.9 396.1C7.2 408.8 0 426.1 0 444.1C0 481.6 30.4 512 67.9 512c18 0 35.3-7.2 48-19.9l117.8-117.8c-7.8-20.9-9-43.6-3.6-65.1l-61.7-61.7zM512 144c0-10.5-1.1-20.7-3.2-30.5c-2.4-11.2-16.1-14.1-24.2-6l-63.9 63.9c-3 3-7.1 4.7-11.3 4.7L352 176c-8.8 0-16-7.2-16-16v-57.4c0-4.2 1.7-8.3 4.7-11.3l63.9-63.9c8.1-8.1 5.2-21.8-6-24.2C388.7 1.1 378.5 0 368 0c-79.5 0-144 64.5-144 144v.8l85.3 85.3c36-9.1 75.8.5 104 28.7l15.7 15.7c49-23 83-72.8 83-130.5M56 432a24 24 0 1 1 48 0a24 24 0 1 1-48 0"></path></svg>
+                                                                </div>
+                                                                <div
+                                                                    style={{ fontFamily: 'MyCustomFont2', fontSize: 32 }}
+                                                                    className="text-black ml-2">
+                                                                    รายละเอียดรายการแจ้งซ่อม
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={closeModal}
+                                                                    className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center ml-auto"
+                                                                >
+                                                                    <svg
+                                                                        className="w-3 h-3"
+                                                                        aria-hidden="true"
+                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                        fill="none"
+                                                                        viewBox="0 0 14 14"
+                                                                    >
+                                                                        <path
+                                                                            stroke="currentColor"
+                                                                            strokeLinecap="round"
+                                                                            strokeLinejoin="round"
+                                                                            strokeWidth="2"
+                                                                            d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
+                                                                        />
+                                                                    </svg>
+                                                                    <span className="sr-only">Close modal</span>
+                                                                </button>
+                                                            </div>
+                                                            {/* Modal body */}
+                                                            <div
+                                                                className="flex p-1 mx-2 mt-4  bg-[#ff7b00] text-white"
+                                                                style={{ fontFamily: 'MyCustomFont2', fontSize: 24 }}>
+                                                                ข้อมูลการแจ้งปัญหา
+                                                            </div>
+                                                            <div className="container">
+                                                                {issues.map((issue, index) => (
+                                                                    <table key={index}
+                                                                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                                                        className="table-auto w-[98%] m-auto mt-4 text-left border border-gray-300">
+                                                                        <tbody>
+                                                                            <tr>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left" >ปัญหาที่พบ</td>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left pr-60">{issue.description}</td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">รหัสแจ้งซ่อม</td>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">{issue.code}</td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">วันที่แจ้งซ่อม</td>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">{issue.date}</td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">ผู้แจ้งซ่อม</td>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">{issue.email}</td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">สถานที่</td>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">{issue.location}</td>
+                                                                            </tr>
+                                                                        </tbody>
+                                                                    </table>
+                                                                ))}
+                                                            </div>
+                                                            <div
+                                                                className="flex p-1 mx-2 mt-4 bg-[#FFD200] text-white"
+                                                                style={{ fontFamily: 'MyCustomFont2', fontSize: 24 }}>
+                                                                ข้อมูลการดำเนินการ
+                                                            </div>
+                                                            {/* Modal footer */}
+                                                            <div className="container ">
+                                                                <table
+                                                                    style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                                                    className="table-auto w-[98%] m-auto mt-4 text-left border border-gray-300">
+                                                                    <tbody>
+                                                                        {reports.map((report, index) => (
+                                                                            <tr key={index} className="border-b border-gray-300">
+                                                                                <td className="p-2 border-r border-gray-300">{report.label}</td>
+                                                                                <td className="p-2 flex items-center">
+                                                                                    {report.label === 'ผู้ดำเนินการ' && isEditing ? (
+                                                                                        <input
+                                                                                            type="text"
+                                                                                            value={editableValue}
+                                                                                            onChange={(e) => handleInputChange(e.target.value)}
+                                                                                            className="border border-gray-300 p-1 rounded"
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <>{report.value}</>
+
+                                                                                    )}
+                                                                                    {report.label === 'ผู้ดำเนินการ' && (
+                                                                                        <button
+                                                                                            onClick={isEditing ? handleSave : handleEditClick}
+                                                                                            className="ml-96 text-black hover:text-[#FFD200] "
+                                                                                        >
+                                                                                            {isEditing ? <FaSave /> : <FaEdit />}
+                                                                                        </button>
+                                                                                        
+                                                                                    )}
+                                                                                </td>
+
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                            <div className="items-center p-2 rounded-b">
+                                                                <button
+                                                                    onClick={closeModal}
+                                                                    type="button"
+                                                                    style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}
+                                                                    className="text-white bg-[#5CB85C] hover:bg-green-500 focus:ring-4 focus:outline-none focus:ring-gray-100 rounded-md w-full py-2.5"
+                                                                >
+                                                                    บันทึก
+                                                                </button>
+                                                            </div>
+                                                            <div className="flex items-end justify-end p-4 rounded-b">
+                                                                <button
+                                                                    onClick={closeModal}
+                                                                    type="button"
+                                                                    style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                                                    className="text-black bg-white hover:bg-gray-100 focus:ring-2 focus:outline-none focus:ring-gray-100 rounded-lg text-sm px-5 py-2.5"
+                                                                >
+                                                                    ปิด
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </td>
                                     </tr>
                                 ))
