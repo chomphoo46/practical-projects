@@ -50,22 +50,28 @@ function RepairRequest() {
         }));
     }, []);
 
-    const handleFileChange = (event) => {
-        const file = event.target.files[0]; // ดึงไฟล์แรกที่ถูกเลือก
+
+    const [selectedImage, setSelectedImage] = useState(null);
+    const [errorMessage, setErrorMessage] = useState('');
+
+    // ฟังก์ชันจัดการการอัพโหลดรูป
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
 
         if (file) {
-            // ตรวจสอบขนาดไฟล์ (ขนาดไม่เกิน 10MB)
-            const maxFileSizeMB = 10; // ขนาดไฟล์สูงสุด (MB)
-            const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024; // แปลง MB เป็น bytes
-
-            if (file.size > maxFileSizeBytes) {
-                alert(`ขนาดไฟล์เกิน ${maxFileSizeMB}MB`);
-                event.target.value = null; // รีเซ็ตค่า input
+            // ตรวจสอบขนาดไฟล์ (10MB = 10 * 1024 * 1024 bytes)
+            if (file.size > 10 * 1024 * 1024) {
+                setErrorMessage('ขนาดไฟล์เกิน 10MB กรุณาเลือกไฟล์ที่เล็กกว่า');
+                setSelectedImage(null);
                 return;
             }
 
-            // ถ้าขนาดไฟล์ไม่เกิน 10MB ให้ดำเนินการต่อ (เช่นอัปโหลด)
-            console.log("ขนาดไฟล์เหมาะสม สามารถอัปโหลดได้");
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setSelectedImage(reader.result);
+                setErrorMessage('');
+            };
+            reader.readAsDataURL(file);
         }
     };
 
@@ -103,6 +109,9 @@ function RepairRequest() {
     const hadleManageUser = () => {
         navigate('/manager-users');
     };
+    const handleStaticsRepair = () => {
+        navigate('/statics-repair')
+    }
 
 
 
@@ -128,10 +137,10 @@ function RepairRequest() {
                             <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 512 512"><path fill="currentColor" d="M78.6 5c-9.5-7.4-23-6.5-31.6 2L7 47c-8.5 8.5-9.4 22-2.1 31.6l80 104c4.5 5.9 11.6 9.4 19 9.4H158l109 109c-14.7 29-10 65.4 14.3 89.6l112 112c12.5 12.5 32.8 12.5 45.3 0l64-64c12.5-12.5 12.5-32.8 0-45.3l-112-112c-24.2-24.2-60.6-29-89.6-14.3L192 158v-54.1c0-7.5-3.5-14.5-9.4-19zM19.9 396.1C7.2 408.8 0 426.1 0 444.1C0 481.6 30.4 512 67.9 512c18 0 35.3-7.2 48-19.9l117.8-117.8c-7.8-20.9-9-43.6-3.6-65.1l-61.7-61.7zM512 144c0-10.5-1.1-20.7-3.2-30.5c-2.4-11.2-16.1-14.1-24.2-6l-63.9 63.9c-3 3-7.1 4.7-11.3 4.7L352 176c-8.8 0-16-7.2-16-16v-57.4c0-4.2 1.7-8.3 4.7-11.3l63.9-63.9c8.1-8.1 5.2-21.8-6-24.2C388.7 1.1 378.5 0 368 0c-79.5 0-144 64.5-144 144v.8l85.3 85.3c36-9.1 75.8.5 104 28.7l15.7 15.7c49-23 83-72.8 83-130.5M56 432a24 24 0 1 1 48 0a24 24 0 1 1-48 0"></path></svg>
                             <span>แจ้งปัญหา/แจ้งซ่อม</span>
                         </button>
-                        <a href="#" className="border-b-2 border-transparent hover:border-white mx-1.3 sm:mx-7 flex items-center space-x-1">
+                        <button onClick={handleStaticsRepair} className="border-b-2 border-transparent hover:border-white mx-1.3 sm:mx-7 flex items-center space-x-1">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 512 512"><path fill="currentColor" d="M496 496H16V16h32v448h448z"></path><path fill="currentColor" d="M192 432H80V208h112Zm144 0H224V160h112Zm143.64 0h-112V96h112Z"></path></svg>
-                            <span>สถิติแจ้งซ่อม</span>
-                        </a>
+                            <span>สถิติการแจ้งซ่อม</span>
+                        </button>
                         <button onClick={toggleDropdown} className="border-b-2 border-transparent hover:border-white mx-1.3 sm:mx-7 flex items-center space-x-1">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 512 512"><path fill="currentColor" d="M352 96h64c17.7 0 32 14.3 32 32v256c0 17.7-14.3 32-32 32h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32h64c53 0 96-43 96-96V128c0-53-43-96-96-96h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32m-9.4 182.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l73.4 73.4H32c-17.7 0-32 14.3-32 32s14.3 32 32 32h210.7l-73.4 73.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l128-128z"></path></svg>
                             <span>{userEmail ? userEmail : 'เข้าสู่ระบบ'}</span>
@@ -182,7 +191,7 @@ function RepairRequest() {
                             แจ้งปัญหา/แจ้งซ่อม
                         </button>
                         <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
-                            สถิติแจ้งซ่อม
+                            สถิติการแจ้งซ่อม
                         </a>
                         <button onClick={Administrator} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             เข้าสู่ระบบ
@@ -196,6 +205,7 @@ function RepairRequest() {
                     className="bg-white p-6 rounded-3xl shadow-lg max-w-md w-full"
                     onSubmit={handleSubmit}
                 >
+                    {/* อาคาร */}
                     <div className="mb-4" >
                         <label className="block text-black" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }} >อาคาร
                             <span className='text-red-500'> *</span>
@@ -211,6 +221,7 @@ function RepairRequest() {
                         />
                     </div>
 
+                    {/* ห้อง */}
                     <div className="mb-4">
                         <label className="block text-black" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>ห้อง
                             <span className='text-red-500'> *</span>
@@ -226,6 +237,7 @@ function RepairRequest() {
                         />
                     </div>
 
+                    {/* ชั้น */}
                     <div className="mb-4">
                         <label className="block text-black" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>ชั้น
                             <span className='text-red-500'> *</span>
@@ -241,6 +253,7 @@ function RepairRequest() {
                         />
                     </div>
 
+                    {/* วันที่แจ้งซ่อม */}
                     <div className="mb-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}>
                         <label className="block text-black" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>วันที่แจ้งซ่อม
                             <span className='text-red-500'> *</span>
@@ -256,6 +269,7 @@ function RepairRequest() {
                         />
                     </div>
 
+                    {/* รายละเอียด */}
                     <div className="mb-4">
                         <label className="block text-black" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>รายละเอียด
                             <span className='text-red-500'> *</span>
@@ -270,6 +284,7 @@ function RepairRequest() {
                         ></textarea>
                     </div>
 
+                    {/* อุปกรณ์ */}
                     <div className="mb-4">
                         <label className="block text-black" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>อุปกรณ์
                             <span className='text-red-500'> *</span></label>
@@ -283,28 +298,55 @@ function RepairRequest() {
                             required
                         />
                     </div>
+                    
+                    {/* อัพโหลดรูปภาพ */}
                     <div>
                         <label className="block text-black" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>อัพโหลดรูปภาพ
                             <span className='text-red-500'> *</span></label>
                     </div>
-
                     <div class="flex items-center justify-center w-full mb-4">
-                        <label for="dropzone-file" class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50">
-                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                <svg xmlns="http://www.w3.org/2000/svg" width={32} height={32} viewBox="0 0 20 20"><path fill="#6e6868" d="M10 5.5a4.5 4.5 0 1 1-9 0a4.5 4.5 0 0 1 9 0m-4-2a.5.5 0 0 0-1 0V5H3.5a.5.5 0 0 0 0 1H5v1.5a.5.5 0 0 0 1 0V6h1.5a.5.5 0 0 0 0-1H6zm8 .5h-3.207a5.5 5.5 0 0 0-.393-1H14a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-3.6q.476.244 1 .393V14c0 .373.102.722.28 1.02l4.669-4.588a1.5 1.5 0 0 1 2.102 0l4.67 4.588A2 2 0 0 0 16 14V6a2 2 0 0 0-2-2m0 3.5a1.5 1.5 0 1 1-3 0a1.5 1.5 0 0 1 3 0m-1 0a.5.5 0 1 0-1 0a.5.5 0 0 0 1 0m-8.012 8.226A2 2 0 0 0 6 16h8c.37 0 .715-.1 1.012-.274l-4.662-4.58a.5.5 0 0 0-.7 0z">
-                                </path >
-                                </svg>
-                                <p class="mb-2 text-sm text-gray-500">
-                                    <span style={{ fontFamily: 'MyCustomFont2', fontSize: 14 }}>Click to upload</span>
-                                </p>
-                                <p class="text-gray-500" style={{ fontFamily: 'MyCustomFont2', fontSize: 14 }}>PNG, JPG (MAX. 10MB)</p>
+                        <input
+                            id="dropzone-file"
+                            type="file"
+                            onChange={handleImageChange}
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                        />
+                        <label
+                            htmlFor="dropzone-file"
+                            className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50"
+                        >
+                            
+                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                {/* ตรวจสอบว่ามีรูปที่ถูกเลือกหรือไม่ */}
+                                {selectedImage ? (
+                                    <img
+                                        src={selectedImage}
+                                        alt="Uploaded"
+                                        style={{ width: '100%', height: '225px', objectFit: 'cover' }}
+                                    />
+                                ) : (
+                                    <>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width={32} height={32} viewBox="0 0 20 20">
+                                            <path
+                                                fill="#6e6868"
+                                                d="M10 5.5a4.5 4.5 0 1 1-9 0a4.5 4.5 0 0 1 9 0m-4-2a.5.5 0 0 0-1 0V5H3.5a.5.5 0 0 0 0 1H5v1.5a.5.5 0 0 0 1 0V6h1.5a.5.5 0 0 0 0-1H6zm8 .5h-3.207a5.5 5.5 0 0 0-.393-1H14a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-3.6q.476.244 1 .393V14c0 .373.102.722.28 1.02l4.669-4.588a1.5 1.5 0 0 1 2.102 0l4.67 4.588A2 2 0 0 0 16 14V6a2 2 0 0 0-2-2m0 3.5a1.5 1.5 0 1 1-3 0a1.5 1.5 0 0 1 3 0m-1 0a.5.5 0 1 0-1 0a.5.5 0 0 0 1 0m-8.012 8.226A2 2 0 0 0 6 16h8c.37 0 .715-.1 1.012-.274l-4.662-4.58a.5.5 0 0 0-.7 0z"
+                                            />
+                                        </svg>
+                                        <p className="mb-2 text-sm text-gray-500">
+                                            <span style={{ fontFamily: 'MyCustomFont2', fontSize: 14 }}>Click to upload</span>
+                                        </p>
+                                        <p className="text-gray-500" style={{ fontFamily: 'MyCustomFont2', fontSize: 14 }}>
+                                            PNG, JPG (MAX. 10MB)
+                                        </p>
+                                    </>
+                                )}
                             </div>
-                            <input
-                                id="dropzone-file"
-                                type="file"
-                                class="hidden"
-                                onChange={handleFileChange} />
+
+                            {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
                         </label>
+
+
                     </div>
 
                     <button
