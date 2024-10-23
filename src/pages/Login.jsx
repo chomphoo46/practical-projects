@@ -12,51 +12,44 @@ function Login() {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        // ตรวจสอบว่ากรอกข้อมูลครบหรือไม่
-        if (!email || !password) {
-            setError("กรุณากรอกอีเมลและรหัสผ่าน");
-        }
+
         try {
-            const response = await fetch('https://project.xviper.xyz/api/auth/login', {
+            const loginResponse = await fetch('http://localhost:3000/api/auth/login', {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    email: email,
-                    password: password,
-                }),
+                body: JSON.stringify({ email, password }),
             });
-            console.log("Response status:", response.status); // ตรวจสอบ response status
 
-            // เช็คสถานะของ response
-            if (response.status === 200) {
-                // หากล็อกอินสำเร็จ
-                const data = await response.json();
-                setError("");
-                console.log("Login success:", data);
-                // บันทึก token ลงใน localStorage
-                localStorage.setItem('access_Token', data.token);
-                localStorage.setItem('user_email', email); // เก็บอีเมล
+            if (loginResponse.status === 200) {
+                const loginData = await loginResponse.json();
+                console.log(loginData); 
+                //localStorage.setItem('access_token', loginData.token);
+                console.log(localStorage.getItem('access_token'));
+                localStorage.setItem('user_email', email);
 
-                // ตรวจสอบการทำงานของ navigate
-                console.log("Navigating to ProfileAdmin...");
-                navigate("/ProfileAdmin"); // เปลี่ยนหน้าไปยังหน้าแรก
-            } else if (response.status === 401) {
-                // หากอีเมลหรือรหัสผ่านผิด
-                setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+                let userRole = email.endsWith('@kmitl.ac.th') ? 'User' : 'Admin';
+                localStorage.setItem('user_role', userRole);
+
+                if (userRole === 'Admin') {
+                    navigate("/manager-users");
+                } else {
+                    navigate("/");
+                }
             } else {
-                // ข้อผิดพลาดอื่นๆ ที่ไม่ใช่ 200 หรือ 401
-                setError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+                setError("การล็อกอินล้มเหลว");
             }
         } catch (error) {
             console.error("Error during login:", error);
             setError("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
         }
     };
+
     const handleGoogleLogin = () => {
         // ทำการ redirect ไปยัง API ที่ให้ไว้สำหรับล็อกอินผ่าน Google
-        window.location.href = 'https://project.xviper.xyz/api/auth/google';
+        window.location.href = 'http://localhost:3000/api/auth/google';
     };
 
 

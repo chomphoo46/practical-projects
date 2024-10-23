@@ -16,13 +16,13 @@ function StaticsRepair() {
         }
     }, []);
     const data = {
-        labels: ['รอการดำเนินการ', 'กำลังซ่อม', 'รออะไหล่','ซ่อมไม่ได้', 'เสร็จเรียบร้อย'],
+        labels: ['รอการดำเนินการ', 'กำลังซ่อม', 'รออะไหล่', 'ซ่อมไม่ได้', 'เสร็จเรียบร้อย'],
         datasets: [
             {
                 label: 'สถานะการแจ้งซ่อม',
                 data: [20, 60, 25, 15, 80], // ข้อมูลสถิติ (คุณสามารถแก้ไขได้ตามต้องการ)
                 backgroundColor: ['#FF9900', '#2CD9FF', '#007CEE', '#FF0000', '#40C700'],
-                hoverBackgroundColor: ['#FF9900', '#2CD9FF', '#007CEE','#FF0000', '#40C700'],
+                hoverBackgroundColor: ['#FF9900', '#2CD9FF', '#007CEE', '#FF0000', '#40C700'],
             },
         ],
     };
@@ -124,13 +124,16 @@ function StaticsRepair() {
                                     >
                                         Logout
                                     </button>
-                                    <button
-                                        onClick={hadleManageUser}
-                                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
-                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                                    >
-                                        จัดการผู้ใช้
-                                    </button>
+                                    {/* ตรวจสอบ Role ก่อนแสดงปุ่มจัดการผู้ใช้ */}
+                                    {(localStorage.getItem('user_role') === 'Admin' || localStorage.getItem('user_role') === 'Technician') && (
+                                        <button
+                                            onClick={hadleManageUser}
+                                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                        >
+                                            จัดการผู้ใช้
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         )}

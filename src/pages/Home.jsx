@@ -16,7 +16,7 @@ function Home() {
     }, []);
 
     const handleLogout = () => {
-        localStorage.removeItem('access_Token');
+        localStorage.removeItem('access_token');
         localStorage.removeItem('user_email');
         setUserEmail('');
         setIsDropdownOpen(false);
@@ -55,8 +55,8 @@ function Home() {
 
     return (
         <div>
-             {/* Navbar */}
-             <nav className="bg-[#ff7b00] p-4" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>
+            {/* Navbar */}
+            <nav className="bg-[#ff7b00] p-4" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>
                 <div className="container mx-auto flex justify-between items-center">
                     {/* Logo */}
                     <div>
@@ -95,13 +95,16 @@ function Home() {
                                     >
                                         Logout
                                     </button>
-                                    <button
-                                        onClick={hadleManageUser}
-                                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
-                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                                    >
-                                        จัดการผู้ใช้
-                                    </button>
+                                    {/* ตรวจสอบ Role ก่อนแสดงปุ่มจัดการผู้ใช้ */}
+                                    {(localStorage.getItem('user_role') === 'Admin' || localStorage.getItem('user_role') === 'Technician') && (
+                                        <button
+                                            onClick={hadleManageUser}
+                                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                        >
+                                            จัดการผู้ใช้
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         )}
