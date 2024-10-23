@@ -53,10 +53,6 @@ function Home() {
         navigate('/statics-repair')
     }
 
-
-
-
-
     return (
         <div>
              {/* Navbar */}
