@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MdOutlineLock } from "react-icons/md";
 import { RxPerson } from "react-icons/rx";
 
+
 function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -24,16 +25,9 @@ function Login() {
             });
 
             if (loginResponse.status === 200) {
-                const loginData = await loginResponse.json();
-                console.log(loginData); 
-                //localStorage.setItem('access_token', loginData.token);
-                console.log(localStorage.getItem('access_token'));
-                localStorage.setItem('user_email', email);
+                const { role } = await loginResponse.json();
 
-                let userRole = email.endsWith('@kmitl.ac.th') ? 'User' : 'Admin';
-                localStorage.setItem('user_role', userRole);
-
-                if (userRole === 'Admin') {
+                if (role === 'Admin') {
                     navigate("/manager-users");
                 } else {
                     navigate("/");

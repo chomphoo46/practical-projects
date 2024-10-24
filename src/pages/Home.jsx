@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Cookies from 'js-cookie';
 
 
 function Home() {
@@ -8,10 +9,29 @@ function Home() {
     const [userEmail, setUserEmail] = useState('');
     const navigate = useNavigate();
     useEffect(() => {
-        // ดึงอีเมลจาก localStorage
-        const email = localStorage.getItem('user_email');
-        if (email) {
-            setUserEmail(email); // ถ้ามีค่าใน localStorage จะตั้งค่าลง state
+        async function fetchProfile() {
+            try {
+                const profileResponse = await fetch('http://localhost:3000/api/users/profile', {
+                    method: 'GET',
+                    credentials: 'include',
+                });
+
+                if (profileResponse.status === 200) {
+                    const profileData = await profileResponse.json();
+                    setUserEmail(profileData.email);
+                } else {
+                    setUserEmail('');
+                }
+            } catch (err) {
+                console.error('Failed to fetch profile:', err);
+                setUserEmail('');
+            }
+        }
+
+        const accessToken = Cookies.get('access_token');
+
+        if (accessToken) {
+            fetchProfile();
         }
     }, []);
 
