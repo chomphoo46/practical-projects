@@ -175,7 +175,7 @@ function RepairStatus() {
     const handleStatusChange = (newStatus) => {
         setEditableStatus(newStatus); // อัปเดตสถานะขณะแก้ไข
     };
-  
+
 
 
     const handleSave = () => {
@@ -236,13 +236,16 @@ function RepairStatus() {
                                     >
                                         Logout
                                     </button>
-                                    <button
-                                        onClick={hadleManageUser}
-                                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
-                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                                    >
-                                        จัดการผู้ใช้
-                                    </button>
+                                    {/* ตรวจสอบ Role ก่อนแสดงปุ่มจัดการผู้ใช้ */}
+                                    {(localStorage.getItem('user_role') === 'Admin' || localStorage.getItem('user_role') === 'Technician') && (
+                                        <button
+                                            onClick={hadleManageUser}
+                                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                        >
+                                            จัดการผู้ใช้
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         )}

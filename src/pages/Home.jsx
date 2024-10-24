@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Cookies from 'js-cookie';
 
 
 function Home() {
@@ -8,15 +9,34 @@ function Home() {
     const [userEmail, setUserEmail] = useState('');
     const navigate = useNavigate();
     useEffect(() => {
-        // ดึงอีเมลจาก localStorage
-        const email = localStorage.getItem('user_email');
-        if (email) {
-            setUserEmail(email); // ถ้ามีค่าใน localStorage จะตั้งค่าลง state
+        async function fetchProfile() {
+            try {
+                const profileResponse = await fetch('http://localhost:3000/api/users/profile', {
+                    method: 'GET',
+                    credentials: 'include',
+                });
+
+                if (profileResponse.status === 200) {
+                    const profileData = await profileResponse.json();
+                    setUserEmail(profileData.email);
+                } else {
+                    setUserEmail('');
+                }
+            } catch (err) {
+                console.error('Failed to fetch profile:', err);
+                setUserEmail('');
+            }
+        }
+
+        const accessToken = Cookies.get('access_token');
+
+        if (accessToken) {
+            fetchProfile();
         }
     }, []);
 
     const handleLogout = () => {
-        localStorage.removeItem('access_Token');
+        localStorage.removeItem('access_token');
         localStorage.removeItem('user_email');
         setUserEmail('');
         setIsDropdownOpen(false);
@@ -53,14 +73,10 @@ function Home() {
         navigate('/statics-repair')
     }
 
-
-
-
-
     return (
         <div>
-             {/* Navbar */}
-             <nav className="bg-[#ff7b00] p-4" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>
+            {/* Navbar */}
+            <nav className="bg-[#ff7b00] p-4" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>
                 <div className="container mx-auto flex justify-between items-center">
                     {/* Logo */}
                     <div>
@@ -99,13 +115,16 @@ function Home() {
                                     >
                                         Logout
                                     </button>
-                                    <button
-                                        onClick={hadleManageUser}
-                                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
-                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                                    >
-                                        จัดการผู้ใช้
-                                    </button>
+                                    {/* ตรวจสอบ Role ก่อนแสดงปุ่มจัดการผู้ใช้ */}
+                                    {(localStorage.getItem('user_role') === 'Admin' || localStorage.getItem('user_role') === 'Technician') && (
+                                        <button
+                                            onClick={hadleManageUser}
+                                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                        >
+                                            จัดการผู้ใช้
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         )}

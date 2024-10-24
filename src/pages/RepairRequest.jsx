@@ -1,128 +1,169 @@
 import React, { useState, useEffect } from 'react';
-import DatePicker from 'react-datepicker';
 import { useNavigate } from 'react-router-dom';
+import Cookies from 'js-cookie';
 
 function RepairRequest() {
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);  // ตัวแปรสถานะสำหรับเปิดหรือปิด Dropdown
     const [userEmail, setUserEmail] = useState('');
     const [formData, setFormData] = useState({
         building: '',
         room: '',
         floor: '',
         reportDate: '',
-        details: '',
+        description: '',
         equipment: '',
         image: null,
-    });
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const navigate = useNavigate();
+    });  // ตัวแปรสถานะสำหรับเก็บข้อมูลของแบบฟอร์ม
+    const [isMenuOpen, setIsMenuOpen] = useState(false);  // ตัวแปรสถานะสำหรับเปิดหรือปิดเมนู
+    const navigate = useNavigate();  // ฟังก์ชันสำหรับเปลี่ยนเส้นทางของการนำทาง
+
     useEffect(() => {
-        // ดึงอีเมลจาก localStorage
-        const email = localStorage.getItem('user_email');
-        if (email) {
-            setUserEmail(email); // ถ้ามีค่าใน localStorage จะตั้งค่าลง state
+        async function fetchProfile() {
+            try {
+                const profileResponse = await fetch('http://localhost:3000/api/users/profile', {
+                    method: 'GET',
+                    credentials: 'include',
+                });
+
+                if (profileResponse.status === 200) {
+                    const profileData = await profileResponse.json();
+                    setUserEmail(profileData.email);
+                } else {
+                    setUserEmail('');
+                }
+            } catch (err) {
+                console.error('Failed to fetch profile:', err);
+                setUserEmail('');
+            }
+        }
+
+        const accessToken = Cookies.get('access_token');
+
+        if (accessToken) {
+            fetchProfile();
         }
     }, []);
 
     const handleLogout = () => {
-        localStorage.removeItem('access_Token');
+        localStorage.removeItem('access_token');
         localStorage.removeItem('user_email');
-        setUserEmail('')
-        setIsDropdownOpen(false); // รีเซ็ตค่า userEmail เป็นค่าว่าง
+        setUserEmail('');
+        setIsDropdownOpen(false);
+        // รีเซ็ตค่า userEmail เป็นค่าว่าง
     };
+
     const toggleDropdown = () => {
-        // ถ้ายังไม่ได้ login (userEmail ไม่มีค่า)
         if (!userEmail) {
-            // นำผู้ใช้ไปที่หน้า login
-            navigate('/Administrator');
+            navigate('/Administrator');  // ถ้ายังไม่ได้ login ให้ไปที่หน้า login
         } else {
-            // ถ้า login แล้วให้แสดง dropdown
-            setIsDropdownOpen(!isDropdownOpen);
+            setIsDropdownOpen(!isDropdownOpen);  // ถ้า login แล้วให้แสดง dropdown
         }
     };
-    // useEffect สำหรับตั้งวันที่ปัจจุบันเป็นค่าเริ่มต้นของฟิลด์ "วันที่แจ้งซ่อม"
+
     useEffect(() => {
-        const today = new Date(); // สร้างวันใหม่
-        const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`; // รูปแบบ DD/MM/YYYY
+        const today = new Date();  // ดึงวันที่ปัจจุบัน
+        const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;  // ตั้งรูปแบบวันที่
         setFormData((prevData) => ({
             ...prevData,
-            reportDate: formattedDate, // ตั้งค่า reportDate เป็นวันที่ที่ปรับรูปแบบแล้ว
+            reportDate: formattedDate,  // ตั้งค่า reportDate เป็นวันที่ปัจจุบัน
         }));
-    }, []);
+    }, []);  // ใช้ useEffect ตั้งวันที่ปัจจุบันในช่อง "วันที่แจ้งซ่อม"
 
+    const [selectedImage, setSelectedImage] = useState(null);  // ตัวแปรสำหรับเก็บรูปที่อัพโหลด
+    const [errorMessage, setErrorMessage] = useState('');  // ตัวแปรสำหรับเก็บข้อความข้อผิดพลาด
 
-    const [selectedImage, setSelectedImage] = useState(null);
-    const [errorMessage, setErrorMessage] = useState('');
-
-    // ฟังก์ชันจัดการการอัพโหลดรูป
     const handleImageChange = (e) => {
         const file = e.target.files[0];
-
         if (file) {
-            // ตรวจสอบขนาดไฟล์ (10MB = 10 * 1024 * 1024 bytes)
-            if (file.size > 10 * 1024 * 1024) {
-                setErrorMessage('ขนาดไฟล์เกิน 10MB กรุณาเลือกไฟล์ที่เล็กกว่า');
-                setSelectedImage(null);
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setSelectedImage(reader.result);
-                setErrorMessage('');
-            };
-            reader.readAsDataURL(file);
+            setSelectedImage(URL.createObjectURL(file));
+            setFormData({ ...formData, image: file });  // เก็บไฟล์ลงใน state
         }
     };
 
+
     const handleChange = (e) => {
-        const { name, value, files } = e.target;
-        setFormData({
-            ...formData,
-            [name]: files ? files[0] : value,
-        });
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log(formData);
-        // ที่นี่สามารถทำการส่งข้อมูลไปยัง backend ได้
+
+        try {
+            const formDataToSend = new FormData();
+            formDataToSend.append('building', formData.building);        // ฟิลด์ building
+            formDataToSend.append('room', formData.room);                // ฟิลด์ room
+            formDataToSend.append('floor', formData.floor);              // ฟิลด์ floor
+            formDataToSend.append('description', formData.description);  // ฟิลด์ description
+            formDataToSend.append('equipment', formData.equipment);      // ฟิลด์ equipment
+
+            if (formData.image) {
+                formDataToSend.append('image', formData.image);  // ต้องใช้ชื่อ 'image' ตามที่ backend ร้องขอ
+            }
+
+            const response = await fetch('http://localhost:3000/api/maintenances', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                },
+                body: formDataToSend,  // ส่งข้อมูลในรูปแบบ multipart/form-data
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Error occurred while submitting the repair request');
+            }
+
+            const responseData = await response.json();
+            console.log("Repair request submitted successfully:", responseData);
+            navigate('/repair-status');  // ส่งผลลัพธ์ไปยังหน้าสถานะการแจ้งซ่อม
+        } catch (error) {
+            console.error("Error during submission:", error);
+            setErrorMessage(error.message);
+        }
     };
 
 
-    // Toggle menu visibility
+
     const toggleMenu = () => {
-        setIsMenuOpen(!isMenuOpen);
+        setIsMenuOpen(!isMenuOpen);  // สลับการแสดงเมนู
     };
+
     const handleRequestRepair = () => {
-        navigate('/repair-request');  // นี่คือเส้นทางที่คุณต้องการนำทางไป
+        navigate('/repair-request');  // นำทางไปยังหน้าแจ้งซ่อม
     };
+
     const Returntohomepage = () => {
-        navigate('/');  // นี่คือเส้นทางที่คุณต้องการนำทางไป
+        navigate('/');  // นำทางกลับไปที่หน้าหลัก
     };
+
     const hadleRepairStatus = () => {
-        navigate('/repair-status')
-    }
+        navigate('/repair-status');  // นำทางไปที่หน้าสถานะการแจ้งซ่อม
+    };
+
     const Administrator = () => {
-        navigate('/Administrator');
+        navigate('/Administrator');  // นำทางไปที่หน้าแอดมิน
     };
+
     const hadleManageUser = () => {
-        navigate('/manager-users');
+        navigate('/manager-users');  // นำทางไปที่หน้าจัดการผู้ใช้
     };
+
     const handleStaticsRepair = () => {
-        navigate('/statics-repair')
-    }
-
-
+        navigate('/statics-repair');  // นำทางไปที่หน้าสถิติการแจ้งซ่อม
+    };
 
     return (
         <div>
-            <nav className='bg-[#ff7b00] p-4' style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>
+            {/* Navbar */}
+            <nav className="bg-[#ff7b00] p-4" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>
                 <div className="container mx-auto flex justify-between items-center">
                     {/* Logo */}
                     <div>
                         <img src="src/assets/sci_kmitl_logo_1.png" alt="Logo" className="h-10 md:h-12" />
                     </div>
+
                     {/* Desktop Menu */}
                     <div className="hidden md:flex space-x-4 lg:space-x-6 text-white">
                         <button onClick={Returntohomepage} className="border-b-2 border-transparent hover:border-white mx-1.3 sm:mx-7 flex items-center space-x-1">
@@ -155,16 +196,20 @@ function RepairRequest() {
                                     >
                                         Logout
                                     </button>
-                                    <button
-                                        onClick={hadleManageUser}
-                                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
-                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                                    >
-                                        จัดการผู้ใช้
-                                    </button>
+                                    {/* ตรวจสอบ Role ก่อนแสดงปุ่มจัดการผู้ใช้ */}
+                                    {(localStorage.getItem('user_role') === 'Admin' || localStorage.getItem('user_role') === 'Technician') && (
+                                        <button
+                                            onClick={hadleManageUser}
+                                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                        >
+                                            จัดการผู้ใช้
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         )}
+
                     </div>
 
                     {/* Hamburger Icon for Mobile */}
@@ -175,190 +220,204 @@ function RepairRequest() {
                             </svg>
                         </button>
                     </div>
-
-
                 </div>
+
                 {/* Mobile Menu */}
                 {isMenuOpen && (
                     <div className="md:hidden mt-2 space-y-2">
-                        <button onClick={Returntohomepage} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             หน้าหลัก
-                        </button>
-                        <button onClick={hadleRepairStatus} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                        </a>
+                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             สถานะการแจ้งซ่อม
-                        </button>
+                        </a>
                         <button onClick={handleRequestRepair} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             แจ้งปัญหา/แจ้งซ่อม
                         </button>
                         <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             สถิติการแจ้งซ่อม
                         </a>
-                        <button onClick={Administrator} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             เข้าสู่ระบบ
-                        </button>
+                        </a>
                     </div>
                 )}
             </nav>
-            <h1 className="text-2xl font-bold mb-10 mt-10 text-center" style={{ fontFamily: 'MyCustomFont', fontSize: 32 }}>แจ้งปัญหา/แจ้งซ่อม</h1>
-            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-                <form
-                    className="bg-white p-6 rounded-3xl shadow-lg max-w-md w-full"
-                    onSubmit={handleSubmit}
-                >
-                    {/* อาคาร */}
-                    <div className="mb-4" >
-                        <label className="block text-black" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }} >อาคาร
-                            <span className='text-red-500'> *</span>
-                        </label>
-                        <input
-                            type="text"
-                            name="building"
-                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
-                            value={formData.building}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff5f00]"
-                            required
-                        />
-                    </div>
 
-                    {/* ห้อง */}
-                    <div className="mb-4">
-                        <label className="block text-black" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>ห้อง
-                            <span className='text-red-500'> *</span>
-                        </label>
-                        <input
-                            type="text"
-                            name="room"
-                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
-                            value={formData.room}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff5f00]"
-                            required
-                        />
-                    </div>
-
-                    {/* ชั้น */}
-                    <div className="mb-4">
-                        <label className="block text-black" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>ชั้น
-                            <span className='text-red-500'> *</span>
-                        </label>
-                        <input
-                            type="text"
-                            name="floor"
-                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
-                            value={formData.floor}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff5f00]"
-                            required
-                        />
-                    </div>
-
-                    {/* วันที่แจ้งซ่อม */}
-                    <div className="mb-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}>
-                        <label className="block text-black" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>วันที่แจ้งซ่อม
-                            <span className='text-red-500'> *</span>
-                        </label>
-                        <DatePicker
-                            type="date"
-                            name="reportDate"
-                            dateFormat="dd/MM/yyyy"
-                            value={formData.reportDate}
-                            onChange={handleChange}
-                            className="w-[400px] px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff5f00]"
-                            required
-                        />
-                    </div>
-
-                    {/* รายละเอียด */}
-                    <div className="mb-4">
-                        <label className="block text-black" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>รายละเอียด
-                            <span className='text-red-500'> *</span>
-                        </label>
-                        <textarea
-                            name="details"
-                            value={formData.details}
-                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff5f00]"
-                            required
-                        ></textarea>
-                    </div>
-
-                    {/* อุปกรณ์ */}
-                    <div className="mb-4">
-                        <label className="block text-black" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>อุปกรณ์
-                            <span className='text-red-500'> *</span></label>
-                        <input
-                            type="text"
-                            name="equipment"
-                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
-                            value={formData.equipment}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff5f00]"
-                            required
-                        />
-                    </div>
-                    
-                    {/* อัพโหลดรูปภาพ */}
-                    <div>
-                        <label className="block text-black" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>อัพโหลดรูปภาพ
-                            <span className='text-red-500'> *</span></label>
-                    </div>
-                    <div class="flex items-center justify-center w-full mb-4">
-                        <input
-                            id="dropzone-file"
-                            type="file"
-                            onChange={handleImageChange}
-                            accept="image/*"
-                            style={{ display: 'none' }}
-                        />
-                        <label
-                            htmlFor="dropzone-file"
-                            className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50"
-                        >
-                            
-                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                {/* ตรวจสอบว่ามีรูปที่ถูกเลือกหรือไม่ */}
-                                {selectedImage ? (
-                                    <img
-                                        src={selectedImage}
-                                        alt="Uploaded"
-                                        style={{ width: '100%', height: '225px', objectFit: 'cover' }}
-                                    />
-                                ) : (
-                                    <>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width={32} height={32} viewBox="0 0 20 20">
-                                            <path
-                                                fill="#6e6868"
-                                                d="M10 5.5a4.5 4.5 0 1 1-9 0a4.5 4.5 0 0 1 9 0m-4-2a.5.5 0 0 0-1 0V5H3.5a.5.5 0 0 0 0 1H5v1.5a.5.5 0 0 0 1 0V6h1.5a.5.5 0 0 0 0-1H6zm8 .5h-3.207a5.5 5.5 0 0 0-.393-1H14a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-3.6q.476.244 1 .393V14c0 .373.102.722.28 1.02l4.669-4.588a1.5 1.5 0 0 1 2.102 0l4.67 4.588A2 2 0 0 0 16 14V6a2 2 0 0 0-2-2m0 3.5a1.5 1.5 0 1 1-3 0a1.5 1.5 0 0 1 3 0m-1 0a.5.5 0 1 0-1 0a.5.5 0 0 0 1 0m-8.012 8.226A2 2 0 0 0 6 16h8c.37 0 .715-.1 1.012-.274l-4.662-4.58a.5.5 0 0 0-.7 0z"
-                                            />
-                                        </svg>
-                                        <p className="mb-2 text-sm text-gray-500">
-                                            <span style={{ fontFamily: 'MyCustomFont2', fontSize: 14 }}>Click to upload</span>
-                                        </p>
-                                        <p className="text-gray-500" style={{ fontFamily: 'MyCustomFont2', fontSize: 14 }}>
-                                            PNG, JPG (MAX. 10MB)
-                                        </p>
-                                    </>
-                                )}
+            {/* เมนูมือถือ */}
+            {isMenuOpen && (
+                <div className="md:hidden bg-[#ff7b00] py-2 px-4 text-white space-y-2">
+                    <button onClick={Returntohomepage} className="block text-left w-full">หน้าหลัก</button>
+                    <button onClick={hadleRepairStatus} className="block text-left w-full">สถานะการแจ้งซ่อม</button>
+                    <button onClick={handleRequestRepair} className="block text-left w-full">แจ้งปัญหา/แจ้งซ่อม</button>
+                    <button onClick={handleStaticsRepair} className="block text-left w-full">สถิติการแจ้งซ่อม</button>
+                    <button onClick={toggleDropdown} className="block text-left w-full">{userEmail ? userEmail : 'เข้าสู่ระบบ'}</button>
+                    {userEmail && isDropdownOpen && (
+                        <div className="absolute right-4 mt-2 w-40 bg-white rounded-md shadow-lg">
+                            <div className="py-1">
+                                <button
+                                    onClick={handleLogout}
+                                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                >
+                                    Logout
+                                </button>
+                                <button
+                                    onClick={hadleManageUser}
+                                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                >
+                                    จัดการผู้ใช้
+                                </button>
                             </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
-                            {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
-                        </label>
+            <div className="bg-gray-100 p-10 " style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>
+                <h2 className="text-4xl mb-4 text-center">แจ้งปัญหา/แจ้งซ่อม</h2>
+                <div className="max-w-md mx-auto bg-white shadow-md rounded-3xl p-6">
+                    <form onSubmit={handleSubmit}>
+                        {/* อาคาร */}
+                        <div className="mb-4">
+                            <label className="block text-back text-xl font-bold mb-2">อาคาร <span className="text-red-500">*</span></label>
+                            <input
+                                type="text"
+                                name="building"
+                                value={formData.building}
+                                onChange={handleChange}
+                                required
+                                style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                className="w-full px-3 py-2 border rounded-md"
+                                placeholder="กรอกชื่ออาคาร"
+                            />
+                        </div>
+                        {/* ห้อง */}
+                        <div className="mb-4">
+                            <label className="block text-back text-xl font-bold mb-2">ห้อง <span className="text-red-500">*</span></label>
+                            <input
+                                type="text"
+                                name="room"
+                                value={formData.room}
+                                onChange={handleChange}
+                                required
+                                style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                className="w-full px-3 py-2 border rounded-md"
+                                placeholder="กรอกหมายเลขห้อง"
+                            />
+                        </div>
+                        {/* ชั้น */}
+                        <div className="mb-4">
+                            <label className="block text-back text-xl font-bold mb-2">ชั้น <span className="text-red-500">*</span></label>
+                            <input
+                                type="text"
+                                name="floor"
+                                value={formData.floor}
+                                onChange={handleChange}
+                                required
+                                style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                className="w-full px-3 py-2 border rounded-md"
+                                placeholder="กรอกหมายเลขชั้น"
+                            />
+                        </div>
+                        {/* วันที่แจ้งซ่อม */}
+                        <div className="mb-4">
+                            <label className="block text-back text-xl font-bold mb-2">วันที่แจ้งซ่อม <span className="text-red-500">*</span></label>
+                            <input
+                                type="text"
+                                name="reportDate"
+                                value={formData.reportDate}
+                                readOnly
+                                style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                className="w-full px-3 py-2 border rounded-md bg-gray-200"
+                            />
+                        </div>
+                        {/* รายละเอียดการแจ้งซ่อม */}
+                        <div className="mb-2">
+                            <label className="block text-back text-xl font-bold mb-2">รายละเอียด <span className="text-red-500">*</span></label>
+                            <textarea
+                                name="description"
+                                value={formData.description}
+                                onChange={handleChange}
+                                required
+                                style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                className="w-full px-3 py-2 border rounded-md"
+                                placeholder="กรอกรายละเอียดการแจ้งซ่อม"
+                            ></textarea>
+                        </div>
+                        {/* อุปกรณ์ที่ต้องซ่อม */}
+                        <div className="mb-4">
+                            <label className="block text-back text-xl font-bold mb-2">อุปกรณ์ <span className="text-red-500">*</span></label>
+                            <input
+                                type="text"
+                                name="equipment"
+                                value={formData.equipment}
+                                onChange={handleChange}
+                                required
+                                style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                className="w-full px-3 py-2 border rounded-md"
+                                placeholder="กรอกชื่ออุปกรณ์"
+                            />
+                        </div>
+                        {/* อัพโหลดรูปภาพ */}
+                        <div className="mb-4">
+                            <label className="block text-back" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>อัพโหลดรูปภาพ
+                                <span className='text-red-500'> *</span></label>
+                        </div>
+                        <div class="flex items-center justify-center w-full mb-4">
+                            <input
+                                id="dropzone-file"
+                                type="file"
+                                name="image"
+                                accept="image/*"
+                                onChange={handleImageChange}
+                                style={{ fontFamily: 'MyCustomFont2', fontSize: 18, display: 'none' }}
+                                className="w-full px-3 py-2 border rounded-md"
+                            />
+                            <label
+                                htmlFor="dropzone-file"
+                                className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50"
+                            >
 
+                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                    {/* ตรวจสอบว่ามีรูปที่ถูกเลือกหรือไม่ */}
+                                    {selectedImage ? (
+                                        <img
+                                            src={selectedImage}
+                                            alt="Uploaded"
+                                            style={{ width: '100%', height: '225px', objectFit: 'cover' }}
+                                        />
+                                    ) : (
+                                        <>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width={32} height={32} viewBox="0 0 20 20">
+                                                <path
+                                                    fill="#6e6868"
+                                                    d="M10 5.5a4.5 4.5 0 1 1-9 0a4.5 4.5 0 0 1 9 0m-4-2a.5.5 0 0 0-1 0V5H3.5a.5.5 0 0 0 0 1H5v1.5a.5.5 0 0 0 1 0V6h1.5a.5.5 0 0 0 0-1H6zm8 .5h-3.207a5.5 5.5 0 0 0-.393-1H14a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-3.6q.476.244 1 .393V14c0 .373.102.722.28 1.02l4.669-4.588a1.5 1.5 0 0 1 2.102 0l4.67 4.588A2 2 0 0 0 16 14V6a2 2 0 0 0-2-2m0 3.5a1.5 1.5 0 1 1-3 0a1.5 1.5 0 0 1 3 0m-1 0a.5.5 0 1 0-1 0a.5.5 0 0 0 1 0m-8.012 8.226A2 2 0 0 0 6 16h8c.37 0 .715-.1 1.012-.274l-4.662-4.58a.5.5 0 0 0-.7 0z"
+                                                />
+                                            </svg>
+                                            <p className="mb-2 text-sm text-gray-500">
+                                                <span style={{ fontFamily: 'MyCustomFont2', fontSize: 14 }}>Click to upload</span>
+                                            </p>
+                                            <p className="text-gray-500" style={{ fontFamily: 'MyCustomFont2', fontSize: 14 }}>
+                                                PNG, JPG (MAX. 10MB)
+                                            </p>
+                                        </>
+                                    )}
+                                </div>
 
-                    </div>
-
-                    <button
-                        type="submit"
-                        className="w-full bg-orange-500 text-white py-2 rounded-2xl hover:bg-orange-600" style={{ fontFamily: 'MyCustomFont', fontSize: 30 }}
-                    >
-                        แจ้งซ่อม
-                    </button>
-                </form>
+                                {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
+                            </label>
+                        </div>
+                        <button
+                            type="submit"
+                            className="w-full bg-[#ff7b00] text-white text-2xl font-bold py-2 px-4 rounded-3xl hover:bg-orange-600"
+                        >
+                            แจ้งซ่อม
+                        </button>
+                    </form>
+                </div>
             </div>
-
         </div>
-    )
+    );
 }
-export default RepairRequest
+
+export default RepairRequest;
