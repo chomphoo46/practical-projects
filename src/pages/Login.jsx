@@ -3,13 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { MdOutlineLock } from "react-icons/md";
 import { RxPerson } from "react-icons/rx";
 
-
 function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const navigate = useNavigate();
-
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -25,13 +23,8 @@ function Login() {
             });
 
             if (loginResponse.status === 200) {
-                const { role } = await loginResponse.json();
-
-                if (role === 'Admin') {
-                    navigate("/manager-users");
-                } else {
-                    navigate("/");
-                }
+                // เรียก fetchProfile เพื่อตรวจสอบ role
+                await fetchProfile();
             } else {
                 setError("การล็อกอินล้มเหลว");
             }
@@ -41,11 +34,37 @@ function Login() {
         }
     };
 
-    const handleGoogleLogin = () => {
-        // ทำการ redirect ไปยัง API ที่ให้ไว้สำหรับล็อกอินผ่าน Google
-        window.location.href = 'http://localhost:3000/api/auth/google';
+    // ฟังก์ชันเพื่อดึงข้อมูลโปรไฟล์
+    const fetchProfile = async () => {
+        try {
+            const profileResponse = await fetch('http://localhost:3000/api/users/profile', {
+                method: 'GET',
+                credentials: 'include',
+            });
+
+            if (profileResponse.status === 200) {
+                const profileData = await profileResponse.json();
+                console.log("User Role:", profileData.role);
+
+                // ตรวจสอบ role และนำทางตามสิทธิ์
+                if (profileData.role === 'Admin') {
+
+                    navigate("/manager-users");
+                } else {
+                    navigate("/");
+                }
+            } else {
+                setError("ไม่สามารถดึงข้อมูลโปรไฟล์ได้");
+            }
+        } catch (error) {
+            console.error("Failed to fetch profile:", error);
+            setError("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
+        }
     };
 
+    const handleGoogleLogin = () => {
+        window.location.href = 'http://localhost:3000/api/auth/google';
+    };
 
     return (
         <div className="bg-cover bg-center h-screen flex justify-center items-center" style={{ backgroundImage: `url('/src/assets/sci.png')` }}>
@@ -70,7 +89,7 @@ function Login() {
                             className="shadow appearance-none border rounded-xl w-full pl-10 py-2 px-3 leading-tight focus:outline-none focus:shadow-outline"
                             style={{ fontFamily: 'MycustomFont2', fontSize: 16 }}
                             value={email}
-                            onChange={(e) => setEmail(e.target.value)} // บันทึกอีเมลใน state
+                            onChange={(e) => setEmail(e.target.value)}
                         />
                     </div>
                     <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password"
@@ -89,10 +108,9 @@ function Login() {
                             className="shadow appearance-none border rounded-xl w-full pl-10 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                             style={{ fontFamily: 'MycustomFont2', fontSize: 16 }}
                             value={password}
-                            onChange={(e) => setPassword(e.target.value)} // บันทึกรหัสผ่านใน state
+                            onChange={(e) => setPassword(e.target.value)}
                         />
                     </div>
-                    {/* แสดงข้อความ error หากกรอกข้อมูลไม่ครบ */}
                     {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
                     <div className="flex items-center justify-between">
                         <button
@@ -110,7 +128,7 @@ function Login() {
                         onClick={handleGoogleLogin}
                         className="mt-2 flex justify-center items-center border border-gray-300 rounded-xl w-full py-2"
                         style={{ fontFamily: 'MycustomFont2', fontSize: 16 }}>
-                        <img src="src\assets\google 1.png" alt="Google Icon" className="w-5 h-5 mr-2" />
+                        <img src="src/assets/google 1.png" alt="Google Icon" className="w-5 h-5 mr-2" />
                         Login with Google
                     </button>
                 </div>
@@ -119,4 +137,4 @@ function Login() {
     );
 }
 
-export default Login
+export default Login;

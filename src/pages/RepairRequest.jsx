@@ -5,6 +5,7 @@ import Cookies from 'js-cookie';
 function RepairRequest() {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);  // ตัวแปรสถานะสำหรับเปิดหรือปิด Dropdown
     const [userEmail, setUserEmail] = useState('');
+    const [userRole, setUserRole] = useState('');
     const [formData, setFormData] = useState({
         building: '',
         room: '',
@@ -17,28 +18,33 @@ function RepairRequest() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);  // ตัวแปรสถานะสำหรับเปิดหรือปิดเมนู
     const navigate = useNavigate();  // ฟังก์ชันสำหรับเปลี่ยนเส้นทางของการนำทาง
 
-    useEffect(() => {
-        async function fetchProfile() {
-            try {
-                const profileResponse = await fetch('http://localhost:3000/api/users/profile', {
-                    method: 'GET',
-                    credentials: 'include',
-                });
+    async function fetchProfile() {
+        try {
+            const profileResponse = await fetch('http://localhost:3000/api/users/profile', {
+                method: 'GET',
+                credentials: 'include',
+            });
 
-                if (profileResponse.status === 200) {
-                    const profileData = await profileResponse.json();
-                    setUserEmail(profileData.email);
-                } else {
-                    setUserEmail('');
-                }
-            } catch (err) {
-                console.error('Failed to fetch profile:', err);
+            if (profileResponse.status === 200) {
+                const profileData = await profileResponse.json();
+                console.log(profileData)
+
+                setUserEmail(profileData.email);
+                setUserRole(profileData.role); // ตั้งค่า role ที่นี่
+                console.log("User Role:", profileData.role);
+            } else {
                 setUserEmail('');
+                setUserRole(''); // เคลียร์ role ถ้าไม่พบ
             }
+        } catch (err) {
+            console.error('Failed to fetch profile:', err);
+            setUserEmail('');
+            setUserRole(''); // เคลียร์ role ถ้าเกิดข้อผิดพลาด
         }
+    }
+    useEffect(() => {
 
         const accessToken = Cookies.get('access_token');
-
         if (accessToken) {
             fetchProfile();
         }
@@ -47,6 +53,8 @@ function RepairRequest() {
     const handleLogout = () => {
         localStorage.removeItem('access_token');
         localStorage.removeItem('user_email');
+        Cookies.remove('access_token');  // ลบคุกกี้ access_token
+        Cookies.remove('user_email');    // ลบคุกกี้ user_email หากมีการจัดเก็บไว้
         setUserEmail('');
         setIsDropdownOpen(false);
         // รีเซ็ตค่า userEmail เป็นค่าว่าง
@@ -88,6 +96,14 @@ function RepairRequest() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+
+        // ตรวจสอบว่ามี access_token หรือไม่
+        const accessToken = Cookies.get('access_token');
+        if (!accessToken) {
+            setErrorMessage('กรุณาเข้าสู่ระบบก่อนทำรายการ');
+            return;
+        }
 
         try {
             const formDataToSend = new FormData();
@@ -146,9 +162,15 @@ function RepairRequest() {
         navigate('/Administrator');  // นำทางไปที่หน้าแอดมิน
     };
 
-    const hadleManageUser = () => {
-        navigate('/manager-users');  // นำทางไปที่หน้าจัดการผู้ใช้
+    const handleManageUser = () => {
+        if (userRole === 'ADMIN') {
+            // navigate('/manager-users', { state: { userEmail} });
+            navigate('/manager-users', { state: { userEmail, userRole } });
+        } else {
+            alert('คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
+        }
     };
+
 
     const handleStaticsRepair = () => {
         navigate('/statics-repair');  // นำทางไปที่หน้าสถิติการแจ้งซ่อม
@@ -197,9 +219,9 @@ function RepairRequest() {
                                         Logout
                                     </button>
                                     {/* ตรวจสอบ Role ก่อนแสดงปุ่มจัดการผู้ใช้ */}
-                                    {(localStorage.getItem('user_role') === 'Admin' || localStorage.getItem('user_role') === 'Technician') && (
+                                    {userRole === 'ADMIN' && (
                                         <button
-                                            onClick={hadleManageUser}
+                                            onClick={handleManageUser}
                                             style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
                                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                                         >

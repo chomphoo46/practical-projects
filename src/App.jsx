@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import './App.css';
 import RepairRequest from './pages/RepairRequest';
@@ -10,8 +10,13 @@ import Home from './pages/Home';
 import StaticsRepair from './pages/StaticsRepair';
 
 function App() {
-  const token = localStorage.getItem('access_token');
-  const userRole = localStorage.getItem('user_role'); // Retrieve user role from local storage
+  const [token, setToken] = useState(localStorage.getItem('access_token'));
+  const [userRole, setUserRole] = useState(localStorage.getItem('user_role'));
+
+  useEffect(() => {
+    setToken(localStorage.getItem('access_token'));
+    setUserRole(localStorage.getItem('user_role'));
+  }, []);
 
   return (
     <Router>
@@ -21,6 +26,8 @@ function App() {
         <Route path="/repair-request" element={<RepairRequest />} /> {/* Repair request page */}
         <Route path="/repair-status" element={<RepairStatus />} /> {/* Repair status page */}
         <Route path="/statics-repair" element={<StaticsRepair />} /> {/* Repair statistics page */}
+        {/* <Route path="/manager-users" element={userRole === 'ADMIN' ? <ManagerUsers /> : <Navigate to="/" />} /> */}
+        <Route path="/manager-users" element={<ManagerUsers />} />
 
         {/* Admin routes */}
         <Route 
@@ -32,11 +39,6 @@ function App() {
           path="/Administrator/ProfileAdmin" 
           element={token && userRole === 'Admin' ? <ProfileAdmin /> : <Navigate to="/Administrator" />} 
         /> {/* Only allow Admin users */}
-
-        <Route 
-          path="/manager-users" 
-          element={token && userRole === 'Admin' ? <ManagerUsers /> : <Navigate to="/Administrator" />} 
-        /> {/* Manager users page only for Admins */}
 
         {/* Fallback for unknown paths */}
         <Route path="*" element={<Navigate to="/" />} />

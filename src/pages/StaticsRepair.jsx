@@ -1,26 +1,90 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Doughnut } from 'react-chartjs-2';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import {
+    Chart as ChartJS,
+    ArcElement, // นำเข้า ArcElement
+    Tooltip,
+    Legend,
+} from 'chart.js';
+import { Pie } from 'react-chartjs-2';
 ChartJS.register(ArcElement, Tooltip, Legend);
+import Cookies from 'js-cookie';
+
 function StaticsRepair() {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [userEmail, setUserEmail] = useState('');
+    const [userRole, setUserRole] = useState('');
+    const [statsData, setStatsData] = useState({}); // ข้อมูลสถิติเริ่มต้น
     const navigate = useNavigate();
+    async function fetchProfile() {
+        try {
+            const profileResponse = await fetch('http://localhost:3000/api/users/profile', {
+                method: 'GET',
+                credentials: 'include',
+            });
+
+            if (profileResponse.status === 200) {
+                const profileData = await profileResponse.json();
+                console.log(profileData)
+
+                setUserEmail(profileData.email);
+                setUserRole(profileData.role); // ตั้งค่า role ที่นี่
+                console.log("User Role:", profileData.role);
+            } else {
+                setUserEmail('');
+                setUserRole(''); // เคลียร์ role ถ้าไม่พบ
+            }
+        } catch (err) {
+            console.error('Failed to fetch profile:', err);
+            setUserEmail('');
+            setUserRole(''); // เคลียร์ role ถ้าเกิดข้อผิดพลาด
+        }
+    }
     useEffect(() => {
-        // ดึงอีเมลจาก localStorage
-        const email = localStorage.getItem('user_email');
-        if (email) {
-            setUserEmail(email); // ถ้ามีค่าใน localStorage จะตั้งค่าลง state
+
+        const accessToken = Cookies.get('access_token');
+        if (accessToken) {
+            fetchProfile();
         }
     }, []);
+
+    const fetchStats = async () => {
+        try {
+            const statsResponse = await fetch('http://localhost:3000/api/stats', {
+                method: 'GET',
+                credentials: 'include',
+            });
+
+            if (statsResponse.status === 200) {
+                const statsData = await statsResponse.json();
+                console.log('statsData:', statsData); // ดูข้อมูลที่ได้จาก API
+                // ตั้งค่า `statsData` โดยตรงจากข้อมูลที่ได้จาก API
+            setStatsData({
+                PENDING: statsData.PENDING || 0,
+                IN_PROGRESS: statsData.IN_PROGRESS || 0,
+                WAITING_FOR_PART: statsData.WAITING_FOR_PART || 0,
+                NOT_REPAIRABLE: statsData.NOT_REPAIRABLE || 0,
+                COMPLETED: statsData.COMPLETED || 0
+            });
+        } else {
+            console.error('ไม่สามารถดึงข้อมูลสถิติได้');
+        }
+    } catch (err) {
+        console.error('เกิดข้อผิดพลาดในการดึงข้อมูลสถิติ:', err);
+    }
+    };
+
+    useEffect(() => {
+        fetchStats();
+    }, []);
+
     const data = {
         labels: ['รอการดำเนินการ', 'กำลังซ่อม', 'รออะไหล่', 'ซ่อมไม่ได้', 'เสร็จเรียบร้อย'],
         datasets: [
             {
                 label: 'สถานะการแจ้งซ่อม',
-                data: [20, 60, 25, 15, 80], // ข้อมูลสถิติ (คุณสามารถแก้ไขได้ตามต้องการ)
+                data: [statsData.PENDING, statsData.IN_PROGRESS, statsData.WAITING_FOR_PART, statsData.NOT_REPAIRABLE, statsData.COMPLETED],
                 backgroundColor: ['#FF9900', '#2CD9FF', '#007CEE', '#FF0000', '#40C700'],
                 hoverBackgroundColor: ['#FF9900', '#2CD9FF', '#007CEE', '#FF0000', '#40C700'],
             },
@@ -45,9 +109,13 @@ function StaticsRepair() {
         },
     };
 
+
     const handleLogout = () => {
         localStorage.removeItem('access_Token');
         localStorage.removeItem('user_email');
+
+        Cookies.remove('access_token');  // ลบคุกกี้ access_token
+        Cookies.remove('user_email');    // ลบคุกกี้ user_email หากมีการจัดเก็บไว้
         setUserEmail('');
         setIsDropdownOpen(false);
         // รีเซ็ตค่า userEmail เป็นค่าว่าง
@@ -75,10 +143,14 @@ function StaticsRepair() {
     const Administrator = () => {
         navigate('/Administrator');
     };
-    const hadleManageUser = () => {
-        navigate('/manager-users')
-    }
-    const hadleRepairStatus = () => {
+    const handleManageUser = () => {
+        if (userRole === 'ADMIN') {
+            // navigate('/manager-users', { state: { userEmail} });
+            navigate('/manager-users', { state: { userEmail, userRole } });
+        } else {
+            alert('คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
+        }
+    }; const hadleRepairStatus = () => {
         navigate('/repair-status')
     }
 
@@ -125,9 +197,9 @@ function StaticsRepair() {
                                         Logout
                                     </button>
                                     {/* ตรวจสอบ Role ก่อนแสดงปุ่มจัดการผู้ใช้ */}
-                                    {(localStorage.getItem('user_role') === 'Admin' || localStorage.getItem('user_role') === 'Technician') && (
+                                    {userRole === 'ADMIN' && (
                                         <button
-                                            onClick={hadleManageUser}
+                                            onClick={handleManageUser}
                                             style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
                                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                                         >
@@ -173,7 +245,7 @@ function StaticsRepair() {
             </nav>
             <div className="flex flex-col items-center justify-center mt-12 md:mt-24">
                 <div className="w-full max-w-lg h-72 md:h-96 mb-4 flex justify-center">
-                    <Doughnut data={data} options={options} />
+                    <Pie data={data} options={options} />
                 </div>
                 <div className="flex flex-wrap justify-center w-full max-w-4xl">
                     {data.labels.map((label, index) => (
@@ -188,6 +260,10 @@ function StaticsRepair() {
                 </div>
             </div>
         </div>
+
     )
+
+
 }
+
 export default StaticsRepair

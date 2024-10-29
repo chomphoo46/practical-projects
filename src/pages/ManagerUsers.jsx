@@ -1,33 +1,77 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import Cookies from 'js-cookie';
 
 function ManagerUsers() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [userEmail, setUserEmail] = useState('');
+    // const [userEmail, setUserEmail] = useState('');
     const navigate = useNavigate();
-    const [repairDate, setRepairDate] = useState('');
     const [repairCode, setRepairCode] = useState('');
-    const [repairData, setRepairData] = useState([
-        {
-            code: '65050171@kmitl.ac.th',
-            reportDate: 'user',
-        },
-    ]);
+    const [repairData, setRepairData] = useState('');
+    const [status, setStatus] = useState('');
+    const [focused, setFocused] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [userData, setUserData] = useState(null);
+
+
+    const location = useLocation();
+    const { userEmail, userRole} = location.state || {};
+
+    console.log(userEmail)
 
     useEffect(() => {
         // ดึงอีเมลจาก localStorage
-        const email = localStorage.getItem('user_email');
-        if (email) {
-            setUserEmail(email); // ถ้ามีค่าใน localStorage จะตั้งค่าลง state
+        // const email = localStorage.getItem('user_email');
+        // console.log(userEmail, userRole)
+
+        // console.log(email)
+
+        // if (email) {
+        //     setUserEmail(email); // ถ้ามีค่าใน localStorage จะตั้งค่าลง state
+        // }
+        if (userRole != "ADMIN"){
+            alert('คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
+            navigate('/');
         }
+    }, []);
+  
+
+    useEffect(() => {
+        async function fetchUserData() {
+            try {
+                const response = await fetch('http://localhost:3000/api/users', {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': `Bearer ${Cookies.get('access_token')}`,
+                    },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setUserData(data);  // เก็บข้อมูลที่ดึงมาใน state
+                } else {
+                    setErrorMessage('ไม่สามารถดึงข้อมูลผู้ใช้ได้');
+                }
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+                setErrorMessage('เกิดข้อผิดพลาดในการดึงข้อมูล');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchUserData();  // เรียกใช้ฟังก์ชันเมื่อ component โหลดครั้งแรก
     }, []);
 
     const handleLogout = () => {
         localStorage.removeItem('access_Token');
         localStorage.removeItem('user_email');
+        Cookies.remove('access_token');  // ลบคุกกี้ access_token
+        Cookies.remove('user_email');    // ลบคุกกี้ user_email หากมีการจัดเก็บไว้
         setUserEmail(''); // รีเซ็ตค่า userEmail เป็นค่าว่าง
     };
     const toggleDropdown = () => {
@@ -46,10 +90,7 @@ function ManagerUsers() {
     useEffect(() => {
         setTimeout(() => setLoading(false), 1000); // โหลดข้อมูลเสร็จหลังจาก 1 วินาที
     }, []);
-    const [status, setStatus] = useState('');
-    const [focused, setFocused] = useState(false);
-    const [loading, setLoading] = useState(true);
-
+    
     const handleSubmit = (e) => {
         e.preventDefault();
         // ฟังก์ชันนี้สามารถส่งค่ากรองไปยัง backend หรือประมวลผลภายในหน้าเว็บ
@@ -60,6 +101,7 @@ function ManagerUsers() {
         }
         console.log("Submitting form with values:", { repairDate, repairCode, status });
     };
+    
 
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
@@ -80,7 +122,6 @@ function ManagerUsers() {
     const handleStaticsRepair = () => {
         navigate('/statics-repair')
     }
-
 
     return (
         <div>
@@ -212,16 +253,15 @@ function ManagerUsers() {
                             </tr>
                         </thead>
                         <tbody>
-                            {repairData.length === 0 ? (
+                            {userData.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="text-center py-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>ไม่มีข้อมูลการแจ้งซ่อม</td>
+                                    <td colSpan="6" className="text-center py-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>ไม่มีข้อมูลผู้ใช้</td>
                                 </tr>
                             ) : (
-                                repairData.map((repair, index) => (
+                                userData.map((user, index) => (
                                     <tr key={index} className="text-center border-b">
-                                        <td className="py-2 px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>{repair.code}</td>
-                                        <td className="py-2 px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>{repair.reportDate}</td>
-
+                                        <td className="py-2 px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>{user.email}</td>
+                                        <td className="py-2 px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>{user.role}</td>
                                         <td className="py-2 px-4">
                                             <button className="bg-[#FFD200] text-white px-4 mx-2 py-1 rounded-full">
                                                 แก้ไข
