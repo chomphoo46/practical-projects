@@ -86,6 +86,9 @@ function Home() {
     const handleStaticsRepair = () => {
         navigate('/statics-repair')
     }
+    const handleCreateTechician = () => {
+        navigate('/create-techinician')
+    }
 
     return (
         <div>
@@ -131,6 +134,17 @@ function Home() {
                                         >
                                             จัดการผู้ใช้
                                         </button>
+                                        
+                                    )}
+                                    {userRole === 'ADMIN' && (
+                                        <button
+                                            onClick={handleCreateTechician}
+                                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                        >
+                                            เพิ่มช่าง
+                                        </button>
+                                        
                                     )}
                                     <button
                                         onClick={handleLogout}

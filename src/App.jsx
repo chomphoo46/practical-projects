@@ -8,6 +8,7 @@ import ProfileAdmin from './Admin/ProfileAdmin';
 import ManagerUsers from './pages/ManagerUsers';
 import Home from './pages/Home';
 import StaticsRepair from './pages/StaticsRepair';
+import CreateTechician from './pages/CreateTechician';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('access_token'));
@@ -28,6 +29,7 @@ function App() {
         <Route path="/statics-repair" element={<StaticsRepair />} /> {/* Repair statistics page */}
         {/* <Route path="/manager-users" element={userRole === 'ADMIN' ? <ManagerUsers /> : <Navigate to="/" />} /> */}
         <Route path="/manager-users" element={<ManagerUsers />} />
+        <Route path="/create-techinician" element={<CreateTechician />} />
 
         {/* Admin routes */}
         <Route 
