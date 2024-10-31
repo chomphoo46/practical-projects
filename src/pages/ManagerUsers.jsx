@@ -26,9 +26,6 @@ function ManagerUsers() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null); // เก็บข้อมูลผู้ใช้ที่เลือกแก้ไข
 
-
-    console.log(userEmail)
-
     async function fetchProfile() {
         try {
             const profileResponse = await fetch('http://localhost:3000/api/users/profile', {
@@ -253,7 +250,7 @@ function ManagerUsers() {
     //อัปเดตผู้ใช้
     const handleSaveEdit = async () => {
         if (!selectedUser) return;
-
+    
         try {
             // การอัปเดต Role ของผู้ใช้
             const roleUpdateResponse = await fetch(`http://localhost:3000/api/users/${selectedUser.id}`, {
@@ -267,33 +264,34 @@ function ManagerUsers() {
                     role: selectedUser.role
                 }),
             });
-        
+    
             if (!roleUpdateResponse.ok) {
                 throw new Error('Failed to update user role');
             }
             console.log("อัปเดต Role สำเร็จ:", selectedUser);
-            
-            // การอัปเดตข้อมูล Maintenance Technician
-            const technicianDataUpdate = await fetch(`http://localhost:3000/api/technicians/${selectedUser.id}`, {
-                method: 'PUT',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${Cookies.get('access_token')}`,
-                },
-                body: JSON.stringify(technicianDetails),
-            });
-        
-            if (!technicianDataUpdate.ok) {
-                throw new Error('Failed to update maintenance technician data');
+    
+            // เฉพาะเมื่อมีข้อมูล technician และ modal ของ technician เปิดอยู่
+            if (selectedUser.role === "TECHNICIAN" && selectedUser.technician) {
+                const technicianDataUpdate = await fetch(`http://localhost:3000/api/technicians/${selectedUser.id}`, {
+                    method: 'PUT',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${Cookies.get('access_token')}`,
+                    },
+                    body: JSON.stringify(technicianDetails),
+                });
+    
+                if (!technicianDataUpdate.ok) {
+                    throw new Error('Failed to update maintenance technician data');
+                }
+                console.log("อัปเดตข้อมูล Maintenance Technician สำเร็จ");
             }
-            console.log("อัปเดตข้อมูล Maintenance Technician สำเร็จ");
-        
-            // ถ้าเรียกทั้งสอง API สำเร็จ
+    
             alert("แก้ไขข้อมูลผู้ใช้เรียบร้อยแล้ว");
             await fetchUserData(); // รีเฟรชข้อมูลผู้ใช้
             closeEditModal(); // ปิด Modal
-        
+    
         } catch (error) {
             if (error.message.includes('user role')) {
                 alert("เกิดข้อผิดพลาดในการอัปเดต Role ของผู้ใช้");
@@ -304,7 +302,7 @@ function ManagerUsers() {
             }
             console.error("Error occurred:", error);
         }
-    }
+    };    
 
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
@@ -597,7 +595,7 @@ function ManagerUsers() {
                                     </tr>
 
                                     {/* แสดงข้อมูล technician เมื่อ role เป็น TECHNICIAN */}
-                                    {selectedUser.role === "TECHNICIAN" && (
+                                    {selectedUser.technician && (
                                         <>
                                             <tr>
                                                 <td className="p-2 border border-gray-300 font-medium">ชื่อ:</td>
