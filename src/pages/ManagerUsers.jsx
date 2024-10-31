@@ -3,76 +3,111 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import Cookies from 'js-cookie';
+import { id } from 'date-fns/locale';
+import { PiPencil } from "react-icons/pi";
 
 function ManagerUsers() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    // const [userEmail, setUserEmail] = useState('');
-    const navigate = useNavigate();
     const [repairCode, setRepairCode] = useState('');
     const [repairData, setRepairData] = useState('');
     const [status, setStatus] = useState('');
     const [focused, setFocused] = useState(false);
     const [loading, setLoading] = useState(true);
     const [userData, setUserData] = useState(null);
-
-
+    const [email, setEmail] = useState('');
+    const [id, setId] = useState('');
+    const [userEmail, setUserEmail] = useState('');
+    const [userRole, setUserRole] = useState('');
+    const navigate = useNavigate();
     const location = useLocation();
-    const { userEmail, userRole} = location.state || {};
+    const [isEditingRole, setIsEditingRole] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null); // เก็บข้อมูลผู้ใช้ที่เลือกแก้ไข
+
 
     console.log(userEmail)
 
+    async function fetchProfile() {
+        try {
+            const profileResponse = await fetch('http://localhost:3000/api/users/profile', {
+                method: 'GET',
+                credentials: 'include',
+            });
+
+            if (profileResponse.status === 200) {
+                const profileData = await profileResponse.json();
+                console.log(profileData)
+
+                setUserEmail(profileData.email);
+                setUserRole(profileData.role); // ตั้งค่า role ที่นี่
+                console.log("User Role:", profileData.role);
+            } else {
+                setUserEmail('');
+                setUserRole(''); // เคลียร์ role ถ้าไม่พบ
+            }
+        } catch (err) {
+            console.error('Failed to fetch profile:', err);
+            setUserEmail('');
+            setUserRole(''); // เคลียร์ role ถ้าเกิดข้อผิดพลาด
+        }
+    }
     useEffect(() => {
-        // ดึงอีเมลจาก localStorage
-        // const email = localStorage.getItem('user_email');
-        // console.log(userEmail, userRole)
 
-        // console.log(email)
+        const accessToken = Cookies.get('access_token');
+        if (accessToken) {
+            fetchProfile();
+        }
+    }, []);
 
-        // if (email) {
-        //     setUserEmail(email); // ถ้ามีค่าใน localStorage จะตั้งค่าลง state
-        // }
-        if (userRole != "ADMIN"){
+    useEffect(() => {
+        // ตรวจสอบว่า role เป็น ADMIN หรือไม่หลังจาก fetchProfile() เสร็จแล้ว
+        if (userRole && userRole !== "ADMIN") {
             alert('คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
             navigate('/');
         }
-    }, []);
-  
+    }, [userRole]);  // ทำงานทุกครั้งเมื่อ userRole เปลี่ยน
 
-    useEffect(() => {
-        async function fetchUserData() {
-            try {
-                const response = await fetch('http://localhost:3000/api/users', {
-                    method: 'GET',
-                    credentials: 'include',
-                    headers: {
-                        'Authorization': `Bearer ${Cookies.get('access_token')}`,
-                    },
-                });
+    // อัปเดต fetchUserData เพื่อดึงข้อมูล technician จาก API
+    const fetchUserData = async () => {
+        try {
+            const response = await fetch('http://localhost:3000/api/users', {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Authorization': `Bearer ${Cookies.get('access_token')}`,
+                },
+            });
 
-                if (response.ok) {
-                    const data = await response.json();
-                    setUserData(data);  // เก็บข้อมูลที่ดึงมาใน state
-                } else {
-                    setErrorMessage('ไม่สามารถดึงข้อมูลผู้ใช้ได้');
-                }
-            } catch (error) {
-                console.error("Error fetching user data:", error);
-                setErrorMessage('เกิดข้อผิดพลาดในการดึงข้อมูล');
-            } finally {
-                setLoading(false);
+            if (response.ok) {
+                const data = await response.json();
+                setUserData(data); // เก็บข้อมูลที่ดึงมาใน state
+            } else {
+                console.error('ไม่สามารถดึงข้อมูลผู้ใช้ได้');
             }
+        } catch (error) {
+            console.error("Error fetching user data:", error);
+        } finally {
+            setLoading(false);
         }
+    };
 
-        fetchUserData();  // เรียกใช้ฟังก์ชันเมื่อ component โหลดครั้งแรก
+    // เรียก fetchUserData เมื่อ component โหลดครั้งแรก
+    useEffect(() => {
+        fetchUserData();
     }, []);
+
 
     const handleLogout = () => {
-        localStorage.removeItem('access_Token');
+        localStorage.removeItem('access_token');
         localStorage.removeItem('user_email');
+
         Cookies.remove('access_token');  // ลบคุกกี้ access_token
         Cookies.remove('user_email');    // ลบคุกกี้ user_email หากมีการจัดเก็บไว้
-        setUserEmail(''); // รีเซ็ตค่า userEmail เป็นค่าว่าง
+        setUserEmail('');
+        setIsDropdownOpen(false);
+        // รีเซ็ตค่า userEmail เป็นค่าว่าง
     };
     const toggleDropdown = () => {
         // ถ้ายังไม่ได้ login (userEmail ไม่มีค่า)
@@ -90,18 +125,186 @@ function ManagerUsers() {
     useEffect(() => {
         setTimeout(() => setLoading(false), 1000); // โหลดข้อมูลเสร็จหลังจาก 1 วินาที
     }, []);
-    
-    const handleSubmit = (e) => {
+
+    const [search, setSearch] = useState('')
+    const handleSearch = async (e) => {
         e.preventDefault();
-        // ฟังก์ชันนี้สามารถส่งค่ากรองไปยัง backend หรือประมวลผลภายในหน้าเว็บ
-        // ตรวจสอบค่าว่าถูกอัพเดตหรือไม่
-        if (!repairDate || !repairCode || !status) {
-            console.error("กรุณากรอกข้อมูลให้ครบถ้วน");
-            return;
+
+        const queryParams = new URLSearchParams();
+
+        if (email) queryParams.append("email", email);
+        if (id) queryParams.append("id", id);
+        if (search) queryParams.append("search", search);
+
+        const apiUrl = `http://localhost:3000/api/users?${queryParams.toString()}`;
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${Cookies.get('access_token')}`
+                },
+
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("Failed to fetch filtered data:", errorData);
+                throw new Error(`API Error: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log("Filtered results:", data);
+
+        } catch (error) {
+            console.error("Error occurred:", error);
         }
-        console.log("Submitting form with values:", { repairDate, repairCode, status });
     };
-    
+    //ลบผู้ใช้
+    const handleDeleteUser = async (userId) => {
+        const confirmDelete = window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้นี้?');
+        if (!confirmDelete) return;
+
+        try {
+            const response = await fetch(`http://localhost:3000/api/users/${userId}`, {
+                method: 'DELETE',
+                credentials: 'include',
+                headers: {
+                    'Authorization': `Bearer ${Cookies.get('access_token')}`,
+                },
+            });
+
+            if (response.ok) {
+                alert("ลบผู้ใช้เรียบร้อยแล้ว");
+                setUserData(userData.filter(user => user.id !== userId)); // อัปเดตสถานะผู้ใช้โดยไม่ต้องรีเฟรชข้อมูล
+            } else {
+                alert("ไม่สามารถลบผู้ใช้ได้");
+            }
+        } catch (error) {
+            console.error("Error deleting user:", error);
+        }
+    };
+    // เพิ่ม state ใหม่สำหรับจัดเก็บข้อมูลเพิ่มเติมของ TECHNICIAN
+    const [technicianDetails, setTechnicianDetails] = useState({
+        firstName: '',
+        lastName: '',
+        sex: '',
+        phoneNumber: ''
+    });
+    // State สำหรับจัดเก็บข้อมูลที่สามารถแก้ไขได้
+    const [isEditingTechnician, setIsEditingTechnician] = useState({
+        firstName: false,
+        lastName: false,
+        sex: false,
+        phoneNumber: false
+    });
+    const handleEditField = (field) => {
+        setIsEditingTechnician({ ...isEditingTechnician, [field]: true });
+    };
+
+    const handleFieldChange = (field, value) => {
+        setTechnicianDetails({ ...technicianDetails, [field]: value });
+    };
+
+    const handleFieldBlur = (field) => {
+        setIsEditingTechnician({ ...isEditingTechnician, [field]: false });
+    };
+    // อัปเดต openEditModal เพื่อตั้งค่า technicianDetails หากผู้ใช้มีข้อมูล technician
+    const openEditModal = (user) => {
+        setSelectedUser(user); // ตั้งค่า selectedUser เป็นผู้ใช้ที่ต้องการแก้ไข
+
+        if (user.role === 'TECHNICIAN' && user.technician) {
+            setTechnicianDetails({
+                firstName: user.technician.firstName,
+                lastName: user.technician.lastName,
+                phoneNumber: user.technician.phoneNumber,
+                sex: user.technician.sex,
+            });
+        } else {
+            setTechnicianDetails({
+                firstName: '',
+                lastName: '',
+                phoneNumber: '',
+                sex: '',
+            });
+        }
+
+        setIsEditModalOpen(true); // เปิด Modal
+    };
+
+    const closeEditModal = () => {
+        setSelectedUser(null);
+        setIsEditModalOpen(false); // ปิด Modal
+    };
+
+    const handleEditClick = () => {
+        setIsEditingRole(true); // เปิดการแก้ไขเมื่อคลิกดินสอ
+    };
+
+    const handleRoleChange = (e) => {
+        setSelectedUser({ ...selectedUser, role: e.target.value });
+    };
+
+    const handleBlur = () => {
+        setIsEditingRole(false); // ปิดการแก้ไขเมื่อคลิกออกนอก
+    };
+    //อัปเดตผู้ใช้
+    const handleSaveEdit = async () => {
+        if (!selectedUser) return;
+
+        try {
+            // การอัปเดต Role ของผู้ใช้
+            const roleUpdateResponse = await fetch(`http://localhost:3000/api/users/${selectedUser.id}`, {
+                method: 'PATCH',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${Cookies.get('access_token')}`,
+                },
+                body: JSON.stringify({
+                    role: selectedUser.role
+                }),
+            });
+        
+            if (!roleUpdateResponse.ok) {
+                throw new Error('Failed to update user role');
+            }
+            console.log("อัปเดต Role สำเร็จ:", selectedUser);
+            
+            // การอัปเดตข้อมูล Maintenance Technician
+            const technicianDataUpdate = await fetch(`http://localhost:3000/api/technicians/${selectedUser.id}`, {
+                method: 'PUT',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${Cookies.get('access_token')}`,
+                },
+                body: JSON.stringify(technicianDetails),
+            });
+        
+            if (!technicianDataUpdate.ok) {
+                throw new Error('Failed to update maintenance technician data');
+            }
+            console.log("อัปเดตข้อมูล Maintenance Technician สำเร็จ");
+        
+            // ถ้าเรียกทั้งสอง API สำเร็จ
+            alert("แก้ไขข้อมูลผู้ใช้เรียบร้อยแล้ว");
+            await fetchUserData(); // รีเฟรชข้อมูลผู้ใช้
+            closeEditModal(); // ปิด Modal
+        
+        } catch (error) {
+            if (error.message.includes('user role')) {
+                alert("เกิดข้อผิดพลาดในการอัปเดต Role ของผู้ใช้");
+            } else if (error.message.includes('maintenance technician')) {
+                alert("เกิดข้อผิดพลาดในการอัปเดตข้อมูล Maintenance Technician");
+            } else {
+                alert("เกิดข้อผิดพลาดในการแก้ไขข้อมูล");
+            }
+            console.error("Error occurred:", error);
+        }
+    }
 
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
@@ -121,6 +324,9 @@ function ManagerUsers() {
     }
     const handleStaticsRepair = () => {
         navigate('/statics-repair')
+    }
+    const handleCreateTechician = () => {
+        navigate('/create-techinician')
     }
 
     return (
@@ -158,6 +364,16 @@ function ManagerUsers() {
                         {isDropdownOpen && (
                             <div className="absolute right-32 mt-10 z-10 w-40 bg-white rounded-md shadow-lg">
                                 <div className="py-1">
+                                    {userRole === 'ADMIN' && (
+                                        <button
+                                            onClick={handleCreateTechician}
+                                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                        >
+                                            เพิ่มช่าง
+                                        </button>
+
+                                    )}
                                     <button
                                         onClick={handleLogout}
                                         style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
@@ -208,35 +424,40 @@ function ManagerUsers() {
                     <span style={{ fontFamily: 'MyCustomFont', fontSize: 32 }}>จัดการผู้ใช้</span>
                 </div>
             </div>
-            <form onSubmit={handleSubmit} className="flex flex-col md:flex-row mx-4 lg:mx-20 mt-8 space-y-4 md:space-x-4 md:space-y-0">
+            <form onSubmit={handleSearch} className="flex flex-col md:flex-row mx-4 lg:mx-20 mt-8 space-y-4 md:space-x-4 md:space-y-0">
                 <div className="flex space-x-10">
                     {/* รหัสแจ้งซ่อม */}
                     <div className="relative input-with-placeholder w-[210px] max-w-md mx-4 sm:mx-auto md:max-w-lg">
                         <input
                             type="text"
                             className="peer block w-full px-3 py-2 bg-[#F5F5F5] border-2 border-gray-400 rounded-2xl focus:outline-none focus:border-[#ff5f00] placeholder-transparent"
-                            value={repairCode}
-                            onChange={(e) => setRepairCode(e.target.value)}
+                            //value={email}
+                            onChange={(e) => setSearch(e.target.value)}
                             style={{ fontFamily: 'MyCustomFont2', fontSize: 18, color: 'black' }}
-                            placeholder=""
                             required
+                            placeholder="Search contacts"
+
                         />
                         <label
                             style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
                             htmlFor="repairCode"
                             class="absolute left-3 top-2 transition-all duration-300 text-gray-500 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-5 peer-focus:scale-90 peer-focus:px-1 peer-focus:bg-[#F5F5F5] peer-focus:text-gray-500 peer-valid:-translate-y-4 peer-valid:scale-90 peer-valid:px-1 peer-valid:bg-[#F5F5F5] peer-valid:text-gray-500">
-                            Email/ชื่อ/นามสกุล
+                            Email/id
                         </label>
                     </div>
 
 
                 </div>
-                <button
+                {/* Search Field */}
+                {/* <button
                     type="submit"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="ค้นหา..."
                     className="bg-[#ff7b00] text-white mb-4 py-3 px-4 rounded-2xl hover:bg-orange-600 w-[100px] max-w-md mx-4 sm:mx-auto md:max-w-lg"
                 >
                     ค้นหา
-                </button>
+                </button> */}
 
             </form>
 
@@ -247,6 +468,7 @@ function ManagerUsers() {
                     <table className='table-auto w-[1350px] border-collapse overflow-hidden rounded-xl'>
                         <thead>
                             <tr className='bg-[#ff7b00] text-white' style={{ fontFamily: 'MyCustomFont', fontSize: 24 }}>
+                                <th className="px-4 py-2">ID</th>
                                 <th className="px-4 py-2">Email</th>
                                 <th className="px-4 py-2">ตำแหน่ง</th>
                                 <th className="px-4 py-2">จัดการ</th>
@@ -258,15 +480,26 @@ function ManagerUsers() {
                                     <td colSpan="6" className="text-center py-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>ไม่มีข้อมูลผู้ใช้</td>
                                 </tr>
                             ) : (
-                                userData.map((user, index) => (
-                                    <tr key={index} className="text-center border-b">
+                                userData.filter((user) => {
+                                    return (
+                                        search.toLowerCase() === '' ||
+                                        user.email.toLowerCase().includes(search.toLowerCase()) || // Filter by email
+                                        user.id.toString().includes(search) // Filter by ID
+                                    );
+                                }).map((user) => (
+                                    <tr key={user.id} className="text-center border-b">
+                                        <td className="py-2 px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>{user.id}</td>
                                         <td className="py-2 px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>{user.email}</td>
                                         <td className="py-2 px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>{user.role}</td>
                                         <td className="py-2 px-4">
-                                            <button className="bg-[#FFD200] text-white px-4 mx-2 py-1 rounded-full">
+                                            <button
+                                                onClick={() => openEditModal(user)}
+                                                className="bg-[#FFD200] text-white px-4 mx-2 py-1 rounded-full">
                                                 แก้ไข
                                             </button>
-                                            <button className="bg-red-500 text-white px-4 py-1 rounded-full">
+                                            <button
+                                                onClick={() => handleDeleteUser(user.id)}
+                                                className="bg-red-500 text-white px-4 py-1 rounded-full">
                                                 ลบ
                                             </button>
                                         </td>
@@ -277,6 +510,228 @@ function ManagerUsers() {
                     </table>
                 )}
             </div>
+            {/* Modal สำหรับแก้ไขข้อมูลผู้ใช้ */}
+            {isEditModalOpen && selectedUser && (
+                <div className="fixed inset-0 flex justify-center items-center z-50 bg-gray-800 bg-opacity-50">
+                    <div className="relative p-4 w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-white shadow-lg rounded">
+                        <div className="flex items-center p-2 border-b rounded-t">
+                            <div>
+                                {/* Icon */}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 512 512">
+                                    <path fill="currentColor" d="M78.6 5c-9.5-7.4-23-6.5-31.6 2L7 47c-8.5 8.5-9.4 22-2.1 31.6l80 104c4.5 5.9 11.6 9.4 19 9.4H158l109 109c-14.7 29-10 65.4 14.3 89.6l112 112c12.5 12.5 32.8 12.5 45.3 0l64-64c12.5-12.5 12.5-32.8 0-45.3l-112-112c-24.2-24.2-60.6-29-89.6-14.3L192 158v-54.1c0-7.5-3.5-14.5-9.4-19zM19.9 396.1C7.2 408.8 0 426.1 0 444.1C0 481.6 30.4 512 67.9 512c18 0 35.3-7.2 48-19.9l117.8-117.8c-7.8-20.9-9-43.6-3.6-65.1l-61.7-61.7zM512 144c0-10.5-1.1-20.7-3.2-30.5c-2.4-11.2-16.1-14.1-24.2-6l-63.9 63.9c-3 3-7.1 4.7-11.3 4.7L352 176c-8.8 0-16-7.2-16-16v-57.4c0-4.2 1.7-8.3 4.7-11.3l63.9-63.9c8.1-8.1 5.2-21.8-6-24.2C388.7 1.1 378.5 0 368 0c-79.5 0-144 64.5-144 144v.8l85.3 85.3c36-9.1 75.8.5 104 28.7l15.7 15.7c49-23 83-72.8 83-130.5M56 432a24 24 0 1 1 48 0a24 24 0 1 1-48 0"></path>
+                                </svg>
+                            </div>
+                            <div
+                                style={{ fontFamily: 'MyCustomFont2', fontSize: 32 }}
+                                className="text-black ml-2">
+                                รายละเอียดผู้ใช้
+                            </div>
+                            <button
+                                type="button"
+                                onClick={closeEditModal}
+                                className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center ml-auto"
+                            >
+                                {/* Close button icon */}
+                                <svg
+                                    className="w-3 h-3"
+                                    aria-hidden="true"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 14 14"
+                                >
+                                    <path
+                                        stroke="currentColor"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
+                                    />
+                                </svg>
+                                <span className="sr-only">Close modal</span>
+                            </button>
+                        </div>
+                        <div
+                            className="flex p-1 mx-2 mt-4 bg-[#FFD200] text-white"
+                            style={{ fontFamily: 'MyCustomFont2', fontSize: 24 }}>
+                            ข้อมูลผู้ใช้
+                        </div>
+                        {/* Modal content */}
+                        <div className="p-4">
+                            <table className="w-full text-left border border-gray-300 rounded" style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}>
+                                <tbody>
+                                    <tr>
+                                        <td className="p-2 border border-gray-300 font-medium">Id:</td>
+                                        <td className="p-2 border border-gray-300">{selectedUser.id}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="p-2 border border-gray-300 font-medium">Email:</td>
+                                        <td className="p-2 border border-gray-300">{selectedUser.email}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="p-2 border border-gray-300 font-medium">ตำแหน่ง:</td>
+                                        <td className="p-2 border border-gray-300">
+                                            {isEditingRole ? (
+                                                <select
+                                                    value={selectedUser.role}
+                                                    onChange={handleRoleChange}
+                                                    onBlur={handleBlur}
+                                                    autoFocus
+                                                    className="w-32 px-3 py-2 border rounded-md"
+                                                >
+                                                    <option value="USER">USER</option>
+                                                    <option value="ADMIN">ADMIN</option>
+                                                    <option value="TECHNICIAN">TECHNICIAN</option>
+                                                </select>
+                                            ) : (
+                                                <div className="flex justify-between w-full items-center">
+                                                    <span>{selectedUser.role}</span>
+                                                    <button
+                                                        onClick={handleEditClick}
+                                                        className="ml-auto bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full p-2 cursor-pointer shadow-lg"
+                                                    >
+                                                        <PiPencil size={18} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+
+                                    {/* แสดงข้อมูล technician เมื่อ role เป็น TECHNICIAN */}
+                                    {selectedUser.role === "TECHNICIAN" && (
+                                        <>
+                                            <tr>
+                                                <td className="p-2 border border-gray-300 font-medium">ชื่อ:</td>
+                                                <td className="p-2 border border-gray-300">
+                                                    {isEditingTechnician.firstName ? (
+                                                        <input
+                                                            type="text"
+                                                            value={technicianDetails.firstName}
+                                                            onChange={(e) => handleFieldChange('firstName', e.target.value)}
+                                                            onBlur={() => handleFieldBlur('firstName')}
+                                                            autoFocus
+                                                            className="w-full px-2 py-1 border rounded"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex justify-between w-full items-center">
+                                                            <span>{technicianDetails.firstName || "ไม่มีข้อมูล"}</span>
+                                                            <button
+                                                                onClick={() => handleEditField('firstName')}
+                                                                className="ml-auto bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full p-2 cursor-pointer shadow-lg"
+                                                            >
+                                                                <PiPencil size={18} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td className="p-2 border border-gray-300 font-medium">นามสกุล:</td>
+                                                <td className="p-2 border border-gray-300">
+                                                    {isEditingTechnician.lastName ? (
+                                                        <input
+                                                            type="text"
+                                                            value={technicianDetails.lastName}
+                                                            onChange={(e) => handleFieldChange('lastName', e.target.value)}
+                                                            onBlur={() => handleFieldBlur('lastName')}
+                                                            autoFocus
+                                                            className="w-full px-2 py-1 border rounded"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex justify-between w-full items-center">
+                                                            <span>{technicianDetails.lastName || "ไม่มีข้อมูล"}</span>
+                                                            <button
+                                                                onClick={() => handleEditField('lastName')}
+                                                                className="ml-auto bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full p-2 cursor-pointer shadow-lg"
+                                                            >
+                                                                <PiPencil size={18} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td className="p-2 border border-gray-300 font-medium">เพศ:</td>
+                                                <td className="p-2 border border-gray-300">
+                                                    {isEditingTechnician.sex ? (
+                                                        <select
+                                                            value={technicianDetails.sex}
+                                                            onChange={(e) => handleFieldChange('sex', e.target.value)}
+                                                            onBlur={() => handleFieldBlur('sex')}
+                                                            autoFocus
+                                                            className="w-full px-2 py-1 border rounded"
+                                                        >
+                                                            <option value="MALE">MALE</option>
+                                                            <option value="FEMALE">FEMALE</option>
+                                                        </select>
+                                                    ) : (
+                                                        <div className="flex justify-between w-full items-center">
+                                                            <span>{technicianDetails.sex || "ไม่มีข้อมูล"}</span>
+                                                            <button
+                                                                onClick={() => handleEditField('sex')}
+                                                                className="ml-auto bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full p-2 cursor-pointer shadow-lg"
+                                                            >
+                                                                <PiPencil size={18} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td className="p-2 border border-gray-300 font-medium">เบอร์โทร:</td>
+                                                <td className="p-2 border border-gray-300">
+                                                    {isEditingTechnician.phoneNumber ? (
+                                                        <input
+                                                            type="text"
+                                                            value={technicianDetails.phoneNumber}
+                                                            onChange={(e) => handleFieldChange('phoneNumber', e.target.value)}
+                                                            onBlur={() => handleFieldBlur('phoneNumber')}
+                                                            autoFocus
+                                                            className="w-full px-2 py-1 border rounded"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex justify-between w-full items-center">
+                                                            <span>{technicianDetails.phoneNumber || "ไม่มีข้อมูล"}</span>
+                                                            <button
+                                                                onClick={() => handleEditField('phoneNumber')}
+                                                                className="ml-auto bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full p-2 cursor-pointer shadow-lg"
+                                                            >
+                                                                <PiPencil size={18} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        </>
+                                    )}
+
+
+                                </tbody>
+                            </table>
+                        </div>
+                        {/* Modal footer */}
+
+                        <div className="flex p-1 mx-2 mt-4  text-white">
+                            <button
+                                onClick={handleSaveEdit}
+                                style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                className="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                            >
+                                บันทึก
+                            </button>
+                        </div>
+                        <div className="flex items-end justify-end p-4 rounded-b">
+                            <button
+                                onClick={closeEditModal}
+                                style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                className="text-black bg-white hover:bg-gray-100 focus:ring-2 focus:outline-none focus:ring-gray-100 rounded-lg text-sm px-5 py-2.5"
+                            >
+                                ปิด
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
