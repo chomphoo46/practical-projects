@@ -40,7 +40,7 @@ function RepairStatus() {
 
             if (profileResponse.status === 200) {
                 const profileData = await profileResponse.json();
-                console.log(profileData)
+                //console.log(profileData)
 
                 setUserEmail(profileData.email);
                 setUserRole(profileData.role); // ตั้งค่า role ที่นี่
@@ -62,12 +62,48 @@ function RepairStatus() {
             fetchProfile();
         }
     }, []);
+    // ดึงข้อมูลการแจ้งซ่อม
+    const fetchRepairData = async () => {
+        try {
+            const response = await fetch('http://localhost:3000/api/maintenances', {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Authorization': `Bearer ${Cookies.get('access_token')}`,
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setRepairData(data);  // เก็บข้อมูลที่ดึงมาใน state
+            } else {
+                setErrorMessage('ไม่สามารถดึงข้อมูลการแจ้งซ่อมได้');
+            }
+        } catch (error) {
+            console.error("Error fetching repair data:", error);
+            setErrorMessage('เกิดข้อผิดพลาดในการดึงข้อมูล');
+        } finally {
+            setLoading(false);
+        }
+    }
+    useEffect(() => {
+        fetchRepairData();
+    }, []);
+
+
 
     useEffect(() => {
         if (repairDetails && repairDetails.status) {
             setEditableStatus(repairDetails.status);
         }
     }, [repairDetails]);
+    // ฟังก์ชันนี้จะถูกส่งไปเพื่ออัปเดตข้อมูลใน repairDetails
+    const updateRepairDetails = (updatedDetails) => {
+        setRepairDetails((prevDetails) => ({
+            ...prevDetails,
+            ...updatedDetails,
+        }));
+    };
 
     const handleEditClick = () => {
         setIsEditingReason(!isEditingReason); // เปิดโหมดแก้ไขเมื่อคลิกไอคอนดินสอ
@@ -136,6 +172,10 @@ function RepairStatus() {
 
             if (formData.image) {
                 formDataToSend.append('image', formData.image);
+            } else {
+                console.error("No image file found.");
+                alert("กรุณาเพิ่มไฟล์ภาพก่อนบันทึก");
+                return; // ออกจากฟังก์ชันหากไม่มีไฟล์
             }
 
             const method = isHasRecord ? 'PUT' : 'POST';
@@ -182,9 +222,21 @@ function RepairStatus() {
 
             const statusData = await statusResponse.json();
             console.log("Repair status updated successfully:", statusData);
+            // อัปเดตสถานะใน UI ทันทีที่อัปเดตสำเร็จ
+            if (recordResponse.ok && statusResponse.ok) {
+                updateRepairDetails({
+                    status: statusPayload.status,
+                    details: editableReason,
+                });
+                alert("บันทึกข้อมูลสำเร็จ");
+                await fetchRepairData();
+                closeModal(); // ปิด modal
+            }
+
 
         } catch (error) {
             console.error("Error updating repair details:", error.message);
+            alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + error.message); // แจ้งเตือนข้อผิดพลาด
         }
     };
 
@@ -393,9 +445,9 @@ function RepairStatus() {
     const handleCreateTechician = () => {
         navigate('/create-techinician')
     }
-
-
-
+    const hadleRepairStatus = () => {
+        navigate('/repair-status')
+    }
     return (
         <div>
             {/* Navbar */}
@@ -477,21 +529,56 @@ function RepairStatus() {
                 {/* Mobile Menu */}
                 {isMenuOpen && (
                     <div className="md:hidden mt-2 space-y-2">
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                        <button onClick={Returntohomepage} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             หน้าหลัก
-                        </a>
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                        </button>
+                        <button onClick={hadleRepairStatus} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             สถานะการแจ้งซ่อม
-                        </a>
+                        </button>
                         <button onClick={handleRequestRepair} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             แจ้งปัญหา/แจ้งซ่อม
                         </button>
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                        <button onClick={handleStaticsRepair} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             สถิติการแจ้งซ่อม
-                        </a>
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
-                            เข้าสู่ระบบ
-                        </a>
+                        </button>
+                        <button onClick={toggleDropdown} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                            <span>{userEmail ? userEmail : 'เข้าสู่ระบบ'}</span>
+                        </button>
+                        {isDropdownOpen && (
+                            <div className="absolute right-32 mt-10 z-10 w-40 bg-white rounded-md shadow-lg">
+                                <div className="py-1">
+                                    {/* ตรวจสอบ Role ก่อนแสดงปุ่มจัดการผู้ใช้ */}
+                                    {userRole === 'ADMIN' && (
+                                        <button
+                                            onClick={handleManageUser}
+                                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                        >
+                                            จัดการผู้ใช้
+                                        </button>
+
+                                    )}
+                                    {userRole === 'ADMIN' && (
+                                        <button
+                                            onClick={handleCreateTechician}
+                                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                        >
+                                            เพิ่มช่าง
+                                        </button>
+
+                                    )}
+                                    <button
+                                        onClick={handleLogout}
+                                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                     </div>
                 )}
             </nav>
@@ -524,21 +611,16 @@ function RepairStatus() {
                             dateFormat="dd/MM/yyyy"
                             className="peer block w-full px-3 py-2 pr-10 bg-[#F5F5F5] border-2 border-gray-400 rounded-2xl focus:outline-none focus:border-[#ff5f00] placeholder-transparent"
                             placeholderText="เลือกวันที่"
-                        //popperPlacement="bottom"
+
                         />
                         <label
                             style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
                             className={`absolute left-3 top-2 transition-all duration-300 text-gray-500 bg-[#F5F5F5]
-          ${repairDate ? '-translate-y-5 scale-90' : 'translate-y-[0] scale-100'} 
-          peer-focus:-translate-y-4 peer-focus:scale-90 peer-focus:left-3 peer-focus:bg-[#F5F5F5] peer-focus:text-black`}
+                            ${repairDate ? '-translate-y-5 scale-90' : 'translate-y-[0] scale-100'} 
+                            peer-focus:-translate-y-4 peer-focus:scale-90 peer-focus:left-3 peer-focus:bg-[#F5F5F5] peer-focus:text-black`}
                         >
                             วันที่แจ้งซ่อม
                         </label>
-
-                        {/* ไอคอนปฏิทิน */}
-                        {/* <span className="absolute right-3 top-2 my-1 text-gray-500">
-                            <MdOutlineCalendarMonth />
-                        </span> */}
                     </div>
                 </div>
 
@@ -588,340 +670,331 @@ function RepairStatus() {
                         สถานะ
                     </label>
                 </div>
-
-                {/* Search Field */}
-                {/* <button
-                    type="submit"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="ค้นหา..."
-                    className="bg-[#ff7b00] text-white mb-4 py-3 px-4 rounded-2xl hover:bg-orange-600 w-[100px] max-w-md mx-4 sm:mx-auto md:max-w-lg"
-                >
-                    ค้นหา
-                </button> */}
-
             </form>
 
-            <div className='container mx-20 mt-4' >
+            <div className='container mx-auto px-4 mt-4' >
                 {loading ? (
                     <p>กำลังโหลด...</p>
                 ) : (
-                    <table className='table-auto w-[1350px] border-collapse overflow-hidden rounded-xl'>
-                        <thead>
-                            <tr className='bg-[#ff7b00] text-white' style={{ fontFamily: 'MyCustomFont', fontSize: 24 }}>
-                                <th className="px-4 py-2">รหัสแจ้งซ่อม</th>
-                                <th className="px-4 py-2">วันที่แจ้งซ่อม</th>
-                                <th className="px-4 py-2">อีเมลผู้แจ้ง</th>
-                                <th className="px-4 py-2">ปัญหาที่พบ</th>
-                                <th className="px-4 py-2">สถานะ</th>
-                                <th className="px-4 py-2">รายละเอียด</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {repairData.length === 0 ? (
-                                <tr>
-                                    <td colSpan="6" className="text-center py-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>ไม่มีข้อมูลการแจ้งซ่อม</td>
+                    <div className="overflow-x-auto">
+                        <table className='table-auto w-full border-collapse overflow-hidden rounded-xl'>
+                            <thead>
+                                <tr className='bg-[#ff7b00] text-white text-xs sm:text-sm md:text-base lg:text-lg' style={{ fontFamily: 'MyCustomFont', fontSize: 24 }}>
+                                    <th className="px-4 py-2">รหัสแจ้งซ่อม</th>
+                                    <th className="px-4 py-2">วันที่แจ้งซ่อม</th>
+                                    <th className="px-4 py-2">อีเมลผู้แจ้ง</th>
+                                    <th className="px-4 py-2">ปัญหาที่พบ</th>
+                                    <th className="px-4 py-2">สถานะ</th>
+                                    <th className="px-4 py-2">รายละเอียด</th>
                                 </tr>
-                            ) : (
-                                repairData.filter((repair) => {
-                                    const formattedDate = new Date(repair.requestDate).toLocaleDateString('en-GB'); // Format date for comparison (dd/MM/yyyy)
-                                    const searchDate = repairDate ? repairDate.toLocaleDateString('en-GB') : ''; // If repairDate is set
+                            </thead>
+                            <tbody>
+                                {repairData.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="6" className="text-center py-4 text-xs sm:text-base" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>ไม่มีข้อมูลการแจ้งซ่อม</td>
+                                    </tr>
+                                ) : (
+                                    repairData.filter((repair) => {
+                                        const formattedDate = new Date(repair.requestDate).toLocaleDateString('en-GB'); // Format date for comparison (dd/MM/yyyy)
+                                        const searchDate = repairDate ? repairDate.toLocaleDateString('en-GB') : ''; // If repairDate is set
 
-                                    return (
-                                        (repairCode ? repair.id.toString() === repairCode : // Exact match for repairCode if entered
-                                            (search.toLowerCase() === '' ||
-                                                repair.equipment.toLowerCase().includes(search.toLowerCase()) ||
-                                                repair.user?.email.toLowerCase().includes(search.toLowerCase()) ||
-                                                repair.id.toString().includes(search) // Check if repair ID matches search term
-                                            )
-                                        ) &&
-                                        (searchDate === '' || formattedDate === searchDate) && // Filter by date
-                                        (status === '' || repair.status === status) // Filter by status
-                                    );
-                                }).map((repair) => (
-                                    <tr key={repair.id} className="text-center border-b">
-                                        <td className="py-2 px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>{repair.id}</td>
-                                        <td className="py-2 px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>{new Date(repair.requestDate).toLocaleString()}</td>
-                                        <td className="py-2 px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>{repair.user?.email || 'No User'}</td>
-                                        <td className="py-2 px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>{repair.equipment}</td>
-                                        <td className={`py-2 px-4 ${statusMapping[repair.status] === 'รอดำเนินการ' ? 'text-[#FF9900]' :
-                                            statusMapping[repair.status] === 'กำลังซ่อม' ? 'text-[#2CD9FF]' :
-                                                statusMapping[repair.status] === 'รออะไหล่' ? 'text-[#007CEE]' :
-                                                    statusMapping[repair.status] === 'ซ่อมไม่ได้' ? 'text-red-400' :
-                                                        statusMapping[repair.status] === 'เสร็จเรียบร้อย' ? 'text-green-500' : ''
-                                            }`}
-                                            style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}
-                                        >
-                                            {statusMapping[repair.status] || repair.status}
-                                        </td>
-                                        <td className="py-2 px-4">
-                                            <button
-                                                onClick={() => openModal(repair.id)}
-                                                style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}
-                                                className="bg-[#FFD200] text-black px-4 py-1 rounded-full"
+                                        return (
+                                            (repairCode ? repair.id.toString() === repairCode : // Exact match for repairCode if entered
+                                                (search.toLowerCase() === '' ||
+                                                    repair.equipment.toLowerCase().includes(search.toLowerCase()) ||
+                                                    repair.user?.email.toLowerCase().includes(search.toLowerCase()) ||
+                                                    repair.id.toString().includes(search) // Check if repair ID matches search term
+                                                )
+                                            ) &&
+                                            (searchDate === '' || formattedDate === searchDate) && // Filter by date
+                                            (status === '' || repair.status === status) // Filter by status
+                                        );
+                                    }).map((repair) => (
+                                        <tr key={repair.id} className="text-center border-b">
+                                            <td className="py-2 px-4 sm:px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>{repair.id}</td>
+                                            <td className="py-2 px-4 sm:px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>{new Date(repair.requestDate).toLocaleString()}</td>
+                                            <td className="py-2 px-4 sm:px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>{repair.user?.email || 'No User'}</td>
+                                            <td className="py-2 px-4 sm:px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>{repair.description}</td>
+                                            <td className={`py-2 px-4 sm:px-4 ${statusMapping[repair.status] === 'รอดำเนินการ' ? 'text-[#FF9900]' :
+                                                statusMapping[repair.status] === 'กำลังซ่อม' ? 'text-[#2CD9FF]' :
+                                                    statusMapping[repair.status] === 'รออะไหล่' ? 'text-[#007CEE]' :
+                                                        statusMapping[repair.status] === 'ซ่อมไม่ได้' ? 'text-red-400' :
+                                                            statusMapping[repair.status] === 'เสร็จเรียบร้อย' ? 'text-green-500' : ''
+                                                }`}
+                                                style={{ fontFamily: 'MyCustomFont2', fontSize: 20, sm: { fontSize: 16 } }}
                                             >
-                                                รายละเอียด
-                                            </button>
-
-                                            {/* Modal */}
-                                            {isModalOpen && repairDetails && (
-                                                <div
-                                                    id="default-modal"
-                                                    tabIndex="-1"
-                                                    aria-hidden="true"
-                                                    className="overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 flex justify-center items-center w-full h-full bg-gray-800 bg-opacity-50"
+                                                {statusMapping[repair.status] || repair.status}
+                                            </td>
+                                            <td className="py-2 px-4">
+                                                <button
+                                                    onClick={() => openModal(repair.id)}
+                                                    style={{ fontFamily: 'MyCustomFont2', fontSize: 20, sm: { fontSize: 16 } }}
+                                                    className="bg-[#FFD200] text-black px-4 py-1 rounded-full"
                                                 >
-                                                    <div className="relative p-4 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-                                                        <div className="relative bg-white shadow h-full">
-                                                            {/* Modal header */}
-                                                            <div className="flex items-center p-2 border-b rounded-t">
-                                                                <div>
-                                                                    {/* Icon */}
-                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 512 512">
-                                                                        <path fill="currentColor" d="M78.6 5c-9.5-7.4-23-6.5-31.6 2L7 47c-8.5 8.5-9.4 22-2.1 31.6l80 104c4.5 5.9 11.6 9.4 19 9.4H158l109 109c-14.7 29-10 65.4 14.3 89.6l112 112c12.5 12.5 32.8 12.5 45.3 0l64-64c12.5-12.5 12.5-32.8 0-45.3l-112-112c-24.2-24.2-60.6-29-89.6-14.3L192 158v-54.1c0-7.5-3.5-14.5-9.4-19zM19.9 396.1C7.2 408.8 0 426.1 0 444.1C0 481.6 30.4 512 67.9 512c18 0 35.3-7.2 48-19.9l117.8-117.8c-7.8-20.9-9-43.6-3.6-65.1l-61.7-61.7zM512 144c0-10.5-1.1-20.7-3.2-30.5c-2.4-11.2-16.1-14.1-24.2-6l-63.9 63.9c-3 3-7.1 4.7-11.3 4.7L352 176c-8.8 0-16-7.2-16-16v-57.4c0-4.2 1.7-8.3 4.7-11.3l63.9-63.9c8.1-8.1 5.2-21.8-6-24.2C388.7 1.1 378.5 0 368 0c-79.5 0-144 64.5-144 144v.8l85.3 85.3c36-9.1 75.8.5 104 28.7l15.7 15.7c49-23 83-72.8 83-130.5M56 432a24 24 0 1 1 48 0a24 24 0 1 1-48 0"></path>
-                                                                    </svg>
-                                                                </div>
-                                                                <div
-                                                                    style={{ fontFamily: 'MyCustomFont2', fontSize: 32 }}
-                                                                    className="text-black ml-2">
-                                                                    รายละเอียดรายการแจ้งซ่อม
-                                                                </div>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={closeModal}
-                                                                    className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center ml-auto"
-                                                                >
-                                                                    {/* Close button icon */}
-                                                                    <svg
-                                                                        className="w-3 h-3"
-                                                                        aria-hidden="true"
-                                                                        xmlns="http://www.w3.org/2000/svg"
-                                                                        fill="none"
-                                                                        viewBox="0 0 14 14"
+                                                    รายละเอียด
+                                                </button>
+
+                                                {/* Modal */}
+                                                {isModalOpen && repairDetails && (
+                                                    <div
+                                                        id="default-modal"
+                                                        tabIndex="-1"
+                                                        aria-hidden="true"
+                                                        className="overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 flex justify-center items-center w-full h-full bg-gray-800 bg-opacity-50"
+                                                    >
+                                                        <div className="relative p-4 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+                                                            <div className="relative bg-white shadow h-full">
+                                                                {/* Modal header */}
+                                                                <div className="flex items-center p-2 border-b rounded-t">
+                                                                    <div>
+                                                                        {/* Icon */}
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 512 512">
+                                                                            <path fill="currentColor" d="M78.6 5c-9.5-7.4-23-6.5-31.6 2L7 47c-8.5 8.5-9.4 22-2.1 31.6l80 104c4.5 5.9 11.6 9.4 19 9.4H158l109 109c-14.7 29-10 65.4 14.3 89.6l112 112c12.5 12.5 32.8 12.5 45.3 0l64-64c12.5-12.5 12.5-32.8 0-45.3l-112-112c-24.2-24.2-60.6-29-89.6-14.3L192 158v-54.1c0-7.5-3.5-14.5-9.4-19zM19.9 396.1C7.2 408.8 0 426.1 0 444.1C0 481.6 30.4 512 67.9 512c18 0 35.3-7.2 48-19.9l117.8-117.8c-7.8-20.9-9-43.6-3.6-65.1l-61.7-61.7zM512 144c0-10.5-1.1-20.7-3.2-30.5c-2.4-11.2-16.1-14.1-24.2-6l-63.9 63.9c-3 3-7.1 4.7-11.3 4.7L352 176c-8.8 0-16-7.2-16-16v-57.4c0-4.2 1.7-8.3 4.7-11.3l63.9-63.9c8.1-8.1 5.2-21.8-6-24.2C388.7 1.1 378.5 0 368 0c-79.5 0-144 64.5-144 144v.8l85.3 85.3c36-9.1 75.8.5 104 28.7l15.7 15.7c49-23 83-72.8 83-130.5M56 432a24 24 0 1 1 48 0a24 24 0 1 1-48 0"></path>
+                                                                        </svg>
+                                                                    </div>
+                                                                    <div
+                                                                        style={{ fontFamily: 'MyCustomFont2', fontSize: 32 }}
+                                                                        className="text-black ml-2">
+                                                                        รายละเอียดรายการแจ้งซ่อม
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={closeModal}
+                                                                        className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center ml-auto"
                                                                     >
-                                                                        <path
-                                                                            stroke="currentColor"
-                                                                            strokeLinecap="round"
-                                                                            strokeLinejoin="round"
-                                                                            strokeWidth="2"
-                                                                            d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
-                                                                        />
-                                                                    </svg>
-                                                                    <span className="sr-only">Close modal</span>
-                                                                </button>
-                                                            </div>
-                                                            {/* ข้อมูลการแจ้งปัญหา */}
-                                                            <div
-                                                                className="flex p-1 mx-2 mt-4 bg-[#ff7b00] text-white"
-                                                                style={{ fontFamily: 'MyCustomFont2', fontSize: 24 }}>
-                                                                ข้อมูลการแจ้งปัญหา
-                                                            </div>
-                                                            <div className="container">
-                                                                <table
-                                                                    style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
-                                                                    className="table-auto w-[98%] m-auto mt-4 text-left border border-gray-300">
-                                                                    <tbody>
-                                                                        <tr>
-                                                                            <td className="p-2 border border-r border-gray-300 text-left">ปัญหาที่พบ</td>
-                                                                            <td className="p-2 border border-r border-gray-300 text-left">{repairDetails.equipment}</td>
-                                                                        </tr>
-                                                                        <tr>
-                                                                            <td className="p-2 border border-r border-gray-300 text-left">รหัสแจ้งซ่อม</td>
-                                                                            <td className="p-2 border border-r border-gray-300 text-left">{repairDetails.id}</td>
-                                                                        </tr>
-                                                                        <tr>
-                                                                            <td className="p-2 border border-r border-gray-300 text-left">วันที่แจ้งซ่อม</td>
-                                                                            <td className="p-2 border border-r border-gray-300 text-left">{new Date(repairDetails.requestDate).toLocaleString()}</td>
-                                                                        </tr>
-                                                                        <tr>
-                                                                            <td className="p-2 border border-r border-gray-300 text-left">อีเมลผู้แจ้ง</td>
-                                                                            <td className="p-2 border border-r border-gray-300 text-left">{repair?.user?.email || 'No User'}</td>
-                                                                        </tr>
-                                                                        <tr>
-                                                                            <td className="p-2 border border-r border-gray-300 text-left">สถานที่</td>
-                                                                            <td className="p-2 border border-r border-gray-300 text-left">{repairDetails.building}</td>
-                                                                        </tr>
-                                                                        <tr>
-                                                                            <td className="p-2 border border-r border-gray-300 text-left">รูปภาพ</td>
-                                                                            <td className="p-2 border border-r border-gray-300 text-left">{repairDetails.imageFileName ? (
-                                                                                <img
-                                                                                    src={`http://localhost:3000/api/pictures/${repairDetails.imageFileName}`} // เปลี่ยนเส้นทางให้ตรงกับที่เก็บภาพของคุณ
-                                                                                    alt="Repair Image"
-                                                                                    className="w-96 h-auto" // ปรับขนาดตามที่คุณต้องการ
-                                                                                />
-                                                                            ) : (
-                                                                                "ไม่มีรูปภาพ"
-                                                                            )}</td>
-                                                                        </tr>
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-
-                                                            {/* ข้อมูลการดำเนินการ */}
-                                                            <div
-                                                                className="flex p-1 mx-2 mt-4 bg-[#FFD200] text-white"
-                                                                style={{ fontFamily: 'MyCustomFont2', fontSize: 24 }}>
-                                                                ข้อมูลการดำเนินการ
-                                                            </div>
-                                                            <div className="container">
-                                                                <table
-                                                                    style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
-                                                                    className="table-auto w-[98%] m-auto mt-4 text-left border border-gray-300">
-                                                                    <tbody>
-                                                                        <tr>
-                                                                            <td className="p-2 border border-r border-gray-300 text-left">วันที่ดำเนินการ</td>
-                                                                            <td className="p-2 border border-r border-gray-300 text-left pr-96"> {repairDetails.records?.recordDate
-                                                                                ? new Date(repairDetails.records.recordDate).toLocaleString()
-                                                                                : 'ไม่มีข้อมูล'}</td>
-                                                                        </tr>
-                                                                        <tr>
-                                                                            <td className="p-2 border border-r border-gray-300 text-left">ผู้ดำเนินการ</td>
-                                                                            <td className="p-2 border border-r border-gray-300 text-left"> {repairDetails.records?.technician
-                                                                                ? `${repairDetails.records.technician.firstName} ${repairDetails.records.technician.lastName}`
-                                                                                : 'ไม่มีข้อมูล'}</td>
-
-                                                                        </tr>
-                                                                        <tr>
-                                                                            <td className="p-2 border border-r border-gray-300 text-left">สาเหตุ/วิธีแก้ไข</td>
-                                                                            <td className="p-2 border border-r border-gray-300 text-left  flex justify-between items-center">
-                                                                                {isEditingReason ? (
-                                                                                    <input
-                                                                                        type="text"
-                                                                                        defaultValue={editableReason || 'ไม่มีข้อมูล'}
-                                                                                        onBlur={(e) => setEditableReason(e.target.value)} // บันทึกเมื่อออกจาก input
-                                                                                        className="w-auto p-1 border border-gray-300 rounded"
+                                                                        {/* Close button icon */}
+                                                                        <svg
+                                                                            className="w-3 h-3"
+                                                                            aria-hidden="true"
+                                                                            xmlns="http://www.w3.org/2000/svg"
+                                                                            fill="none"
+                                                                            viewBox="0 0 14 14"
+                                                                        >
+                                                                            <path
+                                                                                stroke="currentColor"
+                                                                                strokeLinecap="round"
+                                                                                strokeLinejoin="round"
+                                                                                strokeWidth="2"
+                                                                                d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
+                                                                            />
+                                                                        </svg>
+                                                                        <span className="sr-only">Close modal</span>
+                                                                    </button>
+                                                                </div>
+                                                                {/* ข้อมูลการแจ้งปัญหา */}
+                                                                <div
+                                                                    className="flex p-1 mx-2 mt-4 bg-[#ff7b00] text-white"
+                                                                    style={{ fontFamily: 'MyCustomFont2', fontSize: 24 }}>
+                                                                    ข้อมูลการแจ้งปัญหา
+                                                                </div>
+                                                                <div className="container">
+                                                                    <table
+                                                                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                                                        className="table-auto w-[98%] m-auto mt-4 text-left border border-gray-300">
+                                                                        <tbody>
+                                                                            <tr>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">ปัญหาที่พบ</td>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">{repairDetails.description}</td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">รหัสแจ้งซ่อม</td>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">{repairDetails.id}</td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">วันที่แจ้งซ่อม</td>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">{new Date(repairDetails.requestDate).toLocaleString()}</td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">อีเมลผู้แจ้ง</td>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">{repair?.user?.email || 'No User'}</td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">สถานที่</td>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">{repairDetails.building}</td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">รูปภาพ</td>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">{repairDetails.imageFileName ? (
+                                                                                    <img
+                                                                                        src={`http://localhost:3000/api/pictures/${repairDetails.imageFileName}`} // เปลี่ยนเส้นทางให้ตรงกับที่เก็บภาพของคุณ
+                                                                                        alt="Repair Image"
+                                                                                        className="w-96 h-auto" // ปรับขนาดตามที่คุณต้องการ
                                                                                     />
                                                                                 ) : (
-                                                                                    <span>{editableReason || 'ไม่มีข้อมูล'}</span>
+
+                                                                                    "ไม่มีรูปภาพ"
+                                                                                )}</td>
+                                                                            </tr>
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+
+                                                                {/* ข้อมูลการดำเนินการ */}
+                                                                <div
+                                                                    className="flex p-1 mx-2 mt-4 bg-[#FFD200] text-white"
+                                                                    style={{ fontFamily: 'MyCustomFont2', fontSize: 24 }}>
+                                                                    ข้อมูลการดำเนินการ
+                                                                </div>
+                                                                <div className="container">
+                                                                    <table
+                                                                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                                                        className="table-auto w-[98%] m-auto mt-4 text-left border border-gray-300">
+                                                                        <tbody>
+                                                                            <tr>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">วันที่ดำเนินการ</td>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left pr-96"> {repairDetails.records?.recordDate
+                                                                                    ? new Date(repairDetails.records.recordDate).toLocaleString()
+                                                                                    : 'ไม่มีข้อมูล'}</td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">ผู้ดำเนินการ</td>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left"> {repairDetails.records?.technician
+                                                                                    ? `${repairDetails.records.technician.firstName} ${repairDetails.records.technician.lastName}`
+                                                                                    : 'ไม่มีข้อมูล'}</td>
+
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">สาเหตุ/วิธีแก้ไข</td>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left  flex justify-between items-center">
+                                                                                    {isEditingReason ? (
+                                                                                        <input
+                                                                                            type="text"
+                                                                                            defaultValue={editableReason || 'ไม่มีข้อมูล'}
+                                                                                            onBlur={(e) => setEditableReason(e.target.value)} // บันทึกเมื่อออกจาก input
+                                                                                            className="w-auto p-1 border border-gray-300 rounded"
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <span>{editableReason || 'ไม่มีข้อมูล'}</span>
+                                                                                    )}
+                                                                                    {['ADMIN', 'TECHNICIAN'].includes(userRole) && ( // เฉพาะ ADMIN และ TECHNICIAN
+                                                                                        <button
+                                                                                            onClick={handleEditClick}
+                                                                                            className="ml-auto bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full p-2 cursor-pointer shadow-lg"
+                                                                                        >
+                                                                                            <PiPencil />
+                                                                                        </button>
+                                                                                    )}
+                                                                                </td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td className="p-2 border border-r border-gray-300 text-left">สถานะการดำเนินการ</td>
+                                                                                <td
+                                                                                    className={`p-2 border border-r  text-left flex justify-between items-center ${statusMapping[repairDetails.status] === 'รอดำเนินการ' ? 'text-[#FF9900]' :
+                                                                                        statusMapping[repairDetails.status] === 'กำลังซ่อม' ? 'text-[#2CD9FF]' :
+                                                                                            statusMapping[repairDetails.status] === 'รออะไหล่' ? 'text-[#007CEE]' :
+                                                                                                statusMapping[repairDetails.status] === 'ซ่อมไม่ได้' ? 'text-red-400' :
+                                                                                                    statusMapping[repairDetails.status] === 'เสร็จเรียบร้อย' ? 'text-green-500' : ''
+                                                                                        }`}
+                                                                                    style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}
+                                                                                >
+                                                                                    {isEditingStatus ? (
+                                                                                        <select
+                                                                                            value={editableStatus}
+                                                                                            onChange={handleStatusChange}
+                                                                                            onBlur={handleStatusBlur} // บันทึกเมื่อออกจาก input
+                                                                                            className="w-auto p-1 border border-gray-300 rounded"
+                                                                                        >
+                                                                                            {statusOptions.map((option) => (
+                                                                                                <option
+                                                                                                    key={option.value}
+                                                                                                    value={option.value}
+                                                                                                    style={{ color: option.color }} // กำหนดสีของข้อความ
+                                                                                                >
+                                                                                                    {option.label}
+                                                                                                </option>
+                                                                                            ))}
+                                                                                        </select>
+                                                                                    ) : (
+                                                                                        <span>{statusMapping[editableStatus] || editableStatus}</span>
+                                                                                    )}
+                                                                                    {['ADMIN', 'TECHNICIAN'].includes(userRole) && ( // เฉพาะ ADMIN และ TECHNICIAN
+                                                                                        <button
+                                                                                            onClick={handleEditStatusClick}
+                                                                                            className="ml-auto bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full p-2 cursor-pointer shadow-lg"
+                                                                                        >
+                                                                                            <PiPencil size={18} />
+                                                                                        </button>
+                                                                                    )}
+                                                                                </td>
+                                                                            </tr>
+                                                                            <td className="p-2 border border-r border-gray-300 text-left">รูปภาพ</td>
+                                                                            <td className="p-2 border border-r border-gray-300 text-left flex items-center">
+                                                                                {/* แสดงภาพที่ดึงจาก server หรือภาพที่อัพโหลดใหม่ */}
+                                                                                {editableImage && !selectedImage ? (
+                                                                                    <img
+                                                                                        src={`http://localhost:3000/api/pictures/${editableImage}`}
+                                                                                        alt="Repair Image"
+                                                                                        className="w-96 h-auto mb-2"
+                                                                                    />
+                                                                                ) : selectedImage ? (
+                                                                                    <img
+                                                                                        src={selectedImage}
+                                                                                        alt="Selected Repair Image"
+                                                                                        className="w-96 h-auto mb-2"
+                                                                                    />
+                                                                                ) : (
+                                                                                    // กรณีที่ไม่มีรูปภาพใด ๆ จะแสดงข้อความ
+                                                                                    <span className="text-black">ไม่มีรูปภาพ</span>
                                                                                 )}
-                                                                                {['ADMIN', 'TECHNICIAN'].includes(userRole) && ( // เฉพาะ ADMIN และ TECHNICIAN
-                                                                                    <button
-                                                                                        onClick={handleEditClick}
+                                                                                {/* ปุ่มอัปโหลดรูปภาพใหม่ที่มีไอคอนดินสอ ชิดขอบขวา */}
+                                                                                {['ADMIN', 'TECHNICIAN'].includes(userRole) && (
+                                                                                    <label
+                                                                                        htmlFor="dropzone-file"
                                                                                         className="ml-auto bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full p-2 cursor-pointer shadow-lg"
                                                                                     >
                                                                                         <PiPencil />
-                                                                                    </button>
+                                                                                    </label>
                                                                                 )}
-                                                                            </td>
-                                                                        </tr>
-                                                                        <tr>
-                                                                            <td className="p-2 border border-r border-gray-300 text-left">สถานะการดำเนินการ</td>
-                                                                            <td
-                                                                                className={`p-2 border border-r  text-left flex justify-between items-center ${statusMapping[repairDetails.status] === 'รอดำเนินการ' ? 'text-[#FF9900]' :
-                                                                                    statusMapping[repairDetails.status] === 'กำลังซ่อม' ? 'text-[#2CD9FF]' :
-                                                                                        statusMapping[repairDetails.status] === 'รออะไหล่' ? 'text-[#007CEE]' :
-                                                                                            statusMapping[repairDetails.status] === 'ซ่อมไม่ได้' ? 'text-red-400' :
-                                                                                                statusMapping[repairDetails.status] === 'เสร็จเรียบร้อย' ? 'text-green-500' : ''
-                                                                                    }`}
-                                                                                style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}
-                                                                            >
-                                                                                {isEditingStatus ? (
-                                                                                    <select
-                                                                                        value={editableStatus}
-                                                                                        onChange={handleStatusChange}
-                                                                                        onBlur={handleStatusBlur} // บันทึกเมื่อออกจาก input
-                                                                                        className="w-auto p-1 border border-gray-300 rounded"
-                                                                                    >
-                                                                                        {statusOptions.map((option) => (
-                                                                                            <option
-                                                                                                key={option.value}
-                                                                                                value={option.value}
-                                                                                                style={{ color: option.color }} // กำหนดสีของข้อความ
-                                                                                            >
-                                                                                                {option.label}
-                                                                                            </option>
-                                                                                        ))}
-                                                                                    </select>
-                                                                                ) : (
-                                                                                    <span>{statusMapping[editableStatus] || editableStatus}</span>
-                                                                                )}
-                                                                                {['ADMIN', 'TECHNICIAN'].includes(userRole) && ( // เฉพาะ ADMIN และ TECHNICIAN
-                                                                                    <button
-                                                                                        onClick={handleEditStatusClick}
-                                                                                        className="ml-auto bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full p-2 cursor-pointer shadow-lg"
-                                                                                    >
-                                                                                        <PiPencil size={18} />
-                                                                                    </button>
-                                                                                )}
-                                                                            </td>
-                                                                        </tr>
-                                                                        <td className="p-2 border border-r border-gray-300 text-left">รูปภาพ</td>
-                                                                        <td className="p-2 border border-r border-gray-300 text-left flex items-center">
-                                                                            {/* แสดงภาพที่ดึงจาก server หรือภาพที่อัพโหลดใหม่ */}
-                                                                            {editableImage && !selectedImage ? (
-                                                                                <img
-                                                                                    src={`http://localhost:3000/api/pictures/${editableImage}`}
-                                                                                    alt="Repair Image"
-                                                                                    className="w-96 h-auto mb-2"
-                                                                                />
-                                                                            ) : selectedImage ? (
-                                                                                <img
-                                                                                    src={selectedImage}
-                                                                                    alt="Selected Repair Image"
-                                                                                    className="w-96 h-auto mb-2"
-                                                                                />
-                                                                            ) : (
-                                                                                // กรณีที่ไม่มีรูปภาพใด ๆ จะแสดงข้อความ
-                                                                                <span className="text-gray-500">ไม่มีรูปภาพ</span>
-                                                                            )}
-                                                                            {/* ปุ่มอัปโหลดรูปภาพใหม่ที่มีไอคอนดินสอ ชิดขอบขวา */}
-                                                                            {['ADMIN', 'TECHNICIAN'].includes(userRole) && (
-                                                                                <label
-                                                                                    htmlFor="dropzone-file"
-                                                                                    className="ml-auto bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full p-2 cursor-pointer shadow-lg"
-                                                                                >
-                                                                                    <PiPencil />
-                                                                                </label>
-                                                                            )}
 
-                                                                            {/* Input สำหรับอัพโหลดรูปใหม่ */}
-                                                                            {['ADMIN', 'TECHNICIAN'].includes(userRole) && (
-                                                                                <input
-                                                                                    id="dropzone-file"
-                                                                                    type="file"
-                                                                                    name="image"
-                                                                                    accept="image/*"
-                                                                                    onChange={handleImageChange}
-                                                                                    style={{ display: 'none' }}
-                                                                                />
-                                                                            )}
+                                                                                {/* Input สำหรับอัพโหลดรูปใหม่ */}
+                                                                                {['ADMIN', 'TECHNICIAN'].includes(userRole) && (
+                                                                                    <input
+                                                                                        id="dropzone-file"
+                                                                                        type="file"
+                                                                                        name="image"
+                                                                                        accept="image/*"
+                                                                                        onChange={handleImageChange}
+                                                                                        style={{ display: 'none' }}
+                                                                                    />
+                                                                                )}
 
-                                                                        </td>
-                                                                    </tbody>
-                                                                </table>
-                                                                <div className="flex p-1 mx-2 mt-4  text-white">
+                                                                            </td>
+                                                                        </tbody>
+                                                                    </table>
+                                                                    <div className="flex p-1 mx-2 mt-4  text-white">
+                                                                        <button
+                                                                            onClick={handleSaveReason}
+                                                                            type="button"
+                                                                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                                                            className="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                                                                        >
+                                                                            บันทึก
+                                                                        </button>
+                                                                    </div>
+
+                                                                </div>
+                                                                <div className="flex items-end justify-end p-4 rounded-b">
                                                                     <button
-                                                                        onClick={handleSaveReason}
+                                                                        onClick={closeModal}
                                                                         type="button"
                                                                         style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
-                                                                        className="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                                                                        className="text-black bg-white hover:bg-gray-100 focus:ring-2 focus:outline-none focus:ring-gray-100 rounded-lg text-sm px-5 py-2.5"
                                                                     >
-                                                                        บันทึก
+                                                                        ปิด
                                                                     </button>
                                                                 </div>
-
-                                                            </div>
-                                                            <div className="flex items-end justify-end p-4 rounded-b">
-                                                                <button
-                                                                    onClick={closeModal}
-                                                                    type="button"
-                                                                    style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
-                                                                    className="text-black bg-white hover:bg-gray-100 focus:ring-2 focus:outline-none focus:ring-gray-100 rounded-lg text-sm px-5 py-2.5"
-                                                                >
-                                                                    ปิด
-                                                                </button>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            )}
-                                        </td>
+                                                )}
+                                            </td>
 
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
         </div>

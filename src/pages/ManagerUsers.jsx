@@ -8,12 +8,7 @@ import { PiPencil } from "react-icons/pi";
 
 function ManagerUsers() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [repairCode, setRepairCode] = useState('');
-    const [repairData, setRepairData] = useState('');
-    const [status, setStatus] = useState('');
-    const [focused, setFocused] = useState(false);
     const [loading, setLoading] = useState(true);
     const [userData, setUserData] = useState(null);
     const [email, setEmail] = useState('');
@@ -21,7 +16,6 @@ function ManagerUsers() {
     const [userEmail, setUserEmail] = useState('');
     const [userRole, setUserRole] = useState('');
     const navigate = useNavigate();
-    const location = useLocation();
     const [isEditingRole, setIsEditingRole] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null); // เก็บข้อมูลผู้ใช้ที่เลือกแก้ไข
@@ -250,7 +244,7 @@ function ManagerUsers() {
     //อัปเดตผู้ใช้
     const handleSaveEdit = async () => {
         if (!selectedUser) return;
-    
+
         try {
             // การอัปเดต Role ของผู้ใช้
             const roleUpdateResponse = await fetch(`http://localhost:3000/api/users/${selectedUser.id}`, {
@@ -264,12 +258,12 @@ function ManagerUsers() {
                     role: selectedUser.role
                 }),
             });
-    
+
             if (!roleUpdateResponse.ok) {
                 throw new Error('Failed to update user role');
             }
             console.log("อัปเดต Role สำเร็จ:", selectedUser);
-    
+
             // เฉพาะเมื่อมีข้อมูล technician และ modal ของ technician เปิดอยู่
             if (selectedUser.role === "TECHNICIAN" && selectedUser.technician) {
                 const technicianDataUpdate = await fetch(`http://localhost:3000/api/technicians/${selectedUser.id}`, {
@@ -281,17 +275,17 @@ function ManagerUsers() {
                     },
                     body: JSON.stringify(technicianDetails),
                 });
-    
+
                 if (!technicianDataUpdate.ok) {
                     throw new Error('Failed to update maintenance technician data');
                 }
                 console.log("อัปเดตข้อมูล Maintenance Technician สำเร็จ");
             }
-    
+
             alert("แก้ไขข้อมูลผู้ใช้เรียบร้อยแล้ว");
             await fetchUserData(); // รีเฟรชข้อมูลผู้ใช้
             closeEditModal(); // ปิด Modal
-    
+
         } catch (error) {
             if (error.message.includes('user role')) {
                 alert("เกิดข้อผิดพลาดในการอัปเดต Role ของผู้ใช้");
@@ -302,7 +296,7 @@ function ManagerUsers() {
             }
             console.error("Error occurred:", error);
         }
-    };    
+    };
 
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
@@ -398,21 +392,44 @@ function ManagerUsers() {
                 {/* Mobile Menu */}
                 {isMenuOpen && (
                     <div className="md:hidden mt-2 space-y-2">
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                        <button onClick={Returntohomepage} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             หน้าหลัก
-                        </a>
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                        </button>
+                        <button onClick={hadleRepairStatus} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             สถานะการแจ้งซ่อม
-                        </a>
+                        </button>
                         <button onClick={handleRequestRepair} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             แจ้งปัญหา/แจ้งซ่อม
                         </button>
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                        <button onClick={handleStaticsRepair} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             สถิติการแจ้งซ่อม
-                        </a>
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
-                            เข้าสู่ระบบ
-                        </a>
+                        </button>
+                        <button onClick={toggleDropdown} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                            <span>{userEmail ? userEmail : 'เข้าสู่ระบบ'}</span>
+                        </button>
+                        {isDropdownOpen && (
+                            <div className="absolute right-32 mt-10 z-10 w-40 bg-white rounded-md shadow-lg">
+                                <div className="py-1">
+                                    {userRole === 'ADMIN' && (
+                                        <button
+                                            onClick={handleCreateTechician}
+                                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                        >
+                                            เพิ่มช่าง
+                                        </button>
+
+                                    )}
+                                    <button
+                                        onClick={handleLogout}
+                                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </nav>
@@ -459,55 +476,60 @@ function ManagerUsers() {
 
             </form>
 
-            <div className='container mx-20 mt-4' >
+            <div className="container mx-auto px-4 mt-4">
                 {loading ? (
                     <p>กำลังโหลด...</p>
                 ) : (
-                    <table className='table-auto w-[1350px] border-collapse overflow-hidden rounded-xl'>
-                        <thead>
-                            <tr className='bg-[#ff7b00] text-white' style={{ fontFamily: 'MyCustomFont', fontSize: 24 }}>
-                                <th className="px-4 py-2">ID</th>
-                                <th className="px-4 py-2">Email</th>
-                                <th className="px-4 py-2">ตำแหน่ง</th>
-                                <th className="px-4 py-2">จัดการ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {userData.length === 0 ? (
-                                <tr>
-                                    <td colSpan="6" className="text-center py-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>ไม่มีข้อมูลผู้ใช้</td>
+                    <div className="overflow-x-auto">
+                        <table className="table-auto w-full border-collapse overflow-hidden rounded-xl">
+                            <thead>
+                                <tr className="bg-[#ff7b00] text-white text-xs sm:text-sm md:text-base lg:text-lg" style={{ fontFamily: 'MyCustomFont' }}>
+                                    <th className="px-2 py-1 sm:px-4 sm:py-2">ID</th>
+                                    <th className="px-2 py-1 sm:px-4 sm:py-2">Email</th>
+                                    <th className="px-2 py-1 sm:px-4 sm:py-2">ตำแหน่ง</th>
+                                    <th className="px-2 py-1 sm:px-4 sm:py-2">จัดการ</th>
                                 </tr>
-                            ) : (
-                                userData.filter((user) => {
-                                    return (
-                                        search.toLowerCase() === '' ||
-                                        user.email.toLowerCase().includes(search.toLowerCase()) || // Filter by email
-                                        user.id.toString().includes(search) // Filter by ID
-                                    );
-                                }).map((user) => (
-                                    <tr key={user.id} className="text-center border-b">
-                                        <td className="py-2 px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>{user.id}</td>
-                                        <td className="py-2 px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>{user.email}</td>
-                                        <td className="py-2 px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20 }}>{user.role}</td>
-                                        <td className="py-2 px-4">
-                                            <button
-                                                onClick={() => openEditModal(user)}
-                                                className="bg-[#FFD200] text-white px-4 mx-2 py-1 rounded-full">
-                                                แก้ไข
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteUser(user.id)}
-                                                className="bg-red-500 text-white px-4 py-1 rounded-full">
-                                                ลบ
-                                            </button>
-                                        </td>
+                            </thead>
+                            <tbody>
+                                {userData.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="4" className="text-center py-4 text-xs sm:text-base" style={{ fontFamily: 'MyCustomFont2' }}>ไม่มีข้อมูลผู้ใช้</td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                ) : (
+                                    userData.filter((user) => {
+                                        return (
+                                            search.toLowerCase() === '' ||
+                                            user.email.toLowerCase().includes(search.toLowerCase()) || // Filter by email
+                                            user.id.toString().includes(search) // Filter by ID
+                                        );
+                                    }).map((user) => (
+                                        <tr key={user.id} className="text-center border-b">
+                                            <td className="py-2 px-2 sm:px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20, sm: { fontSize: 16 } }}>{user.id}</td>
+                                            <td className="py-2 px-2 sm:px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20, sm: { fontSize: 16 } }}>{user.email}</td>
+                                            <td className="py-2 px-2 sm:px-4" style={{ fontFamily: 'MyCustomFont2', fontSize: 20, sm: { fontSize: 16 } }}>{user.role}</td>
+                                            <td className="py-2 px-2 sm:px-4">
+                                                <button
+                                                    onClick={() => openEditModal(user)}
+                                                    style={{ fontFamily: 'MyCustomFont2', fontSize: 20, sm: { fontSize: 16 } }}
+                                                    className="bg-[#FFD200] text-white px-3 py-1 rounded-full  mx-1">
+                                                    แก้ไข
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteUser(user.id)}
+                                                    style={{ fontFamily: 'MyCustomFont2', fontSize: 20, sm: { fontSize: 16 } }}
+                                                    className="bg-red-500 text-white px-3 py-1 rounded-full mx-1">
+                                                    ลบ
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
+
             {/* Modal สำหรับแก้ไขข้อมูลผู้ใช้ */}
             {isEditModalOpen && selectedUser && (
                 <div className="fixed inset-0 flex justify-center items-center z-50 bg-gray-800 bg-opacity-50">

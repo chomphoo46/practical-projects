@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ChartDataLabels from 'chartjs-plugin-datalabels'; // นำเข้า plugin ของ datalabels
 import {
     Chart as ChartJS,
     ArcElement, // นำเข้า ArcElement
@@ -7,7 +8,8 @@ import {
     Legend,
 } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
-ChartJS.register(ArcElement, Tooltip, Legend);
+
+ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 import Cookies from 'js-cookie';
 
 function StaticsRepair() {
@@ -26,7 +28,7 @@ function StaticsRepair() {
 
             if (profileResponse.status === 200) {
                 const profileData = await profileResponse.json();
-                console.log(profileData)
+                //console.log(profileData)
 
                 setUserEmail(profileData.email);
                 setUserRole(profileData.role); // ตั้งค่า role ที่นี่
@@ -60,54 +62,64 @@ function StaticsRepair() {
                 const statsData = await statsResponse.json();
                 console.log('statsData:', statsData); // ดูข้อมูลที่ได้จาก API
                 // ตั้งค่า `statsData` โดยตรงจากข้อมูลที่ได้จาก API
-            setStatsData({
-                PENDING: statsData.PENDING || 0,
-                IN_PROGRESS: statsData.IN_PROGRESS || 0,
-                WAITING_FOR_PART: statsData.WAITING_FOR_PART || 0,
-                NOT_REPAIRABLE: statsData.NOT_REPAIRABLE || 0,
-                COMPLETED: statsData.COMPLETED || 0
-            });
-        } else {
-            console.error('ไม่สามารถดึงข้อมูลสถิติได้');
+                setStatsData({
+                    PENDING: statsData.PENDING || 0,
+                    IN_PROGRESS: statsData.IN_PROGRESS || 0,
+                    WAITING_FOR_PART: statsData.WAITING_FOR_PART || 0,
+                    NOT_REPAIRABLE: statsData.NOT_REPAIRABLE || 0,
+                    COMPLETED: statsData.COMPLETED || 0
+                });
+            } else {
+                console.error('ไม่สามารถดึงข้อมูลสถิติได้');
+            }
+        } catch (err) {
+            console.error('เกิดข้อผิดพลาดในการดึงข้อมูลสถิติ:', err);
         }
-    } catch (err) {
-        console.error('เกิดข้อผิดพลาดในการดึงข้อมูลสถิติ:', err);
-    }
     };
 
     useEffect(() => {
         fetchStats();
     }, []);
 
+    const dataValues = [
+        statsData.PENDING || 0,
+        statsData.IN_PROGRESS || 0,
+        statsData.WAITING_FOR_PART || 0,
+        statsData.NOT_REPAIRABLE || 0,
+        statsData.COMPLETED || 0,
+    ];
+
+    // ตรวจสอบว่า dataValues ทั้งหมดเป็น 0 หรือไม่
+    const isAllZero = dataValues.every(value => value === 0);
+
     const data = {
-        labels: ['รอการดำเนินการ', 'กำลังซ่อม', 'รออะไหล่', 'ซ่อมไม่ได้', 'เสร็จเรียบร้อย'],
+        labels: isAllZero ? ['ไม่มีข้อมูล'] : ['รอการดำเนินการ', 'กำลังซ่อม', 'รออะไหล่', 'ซ่อมไม่ได้', 'เสร็จเรียบร้อย'],
         datasets: [
             {
                 label: 'สถานะการแจ้งซ่อม',
-                data: [statsData.PENDING, statsData.IN_PROGRESS, statsData.WAITING_FOR_PART, statsData.NOT_REPAIRABLE, statsData.COMPLETED],
-                backgroundColor: ['#FF9900', '#2CD9FF', '#007CEE', '#FF0000', '#40C700'],
-                hoverBackgroundColor: ['#FF9900', '#2CD9FF', '#007CEE', '#FF0000', '#40C700'],
+                data: isAllZero ? [1] : dataValues,
+                backgroundColor: isAllZero ? ['#A9A9A9'] : ['#FF9900', '#2CD9FF', '#007CEE', '#FF0000', '#40C700'],
+                hoverBackgroundColor: isAllZero ? ['#A9A9A9'] : ['#FF9900', '#2CD9FF', '#007CEE', '#FF0000', '#40C700'],
             },
         ],
     };
 
     const options = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            datalabels: {
-                anchor: 'end', // Positioning of the label
-                align: 'end',  // Aligns the label to the bottom
-                formatter: (value, context) => {
-                    return context.chart.data.labels[context.dataIndex]; // Use label from the chart data
-                },
-                color: '#fff', // Label text color
-            },
-            legend: {
-                display: false, // Hide the default legend
-            },
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        datalabels: {
+            display: !isAllZero, // ซ่อน label เมื่อไม่มีข้อมูล
+            anchor: 'end',
+            align: 'end',
+            formatter: (value, context) => context.chart.data.labels[context.dataIndex],
+            color: '#fff',
         },
-    };
+        legend: {
+            display: false, // ซ่อน legend ปกติ
+        },
+    },
+};
 
 
     const handleLogout = () => {
@@ -150,13 +162,16 @@ function StaticsRepair() {
         } else {
             alert('คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
         }
-    }; 
+    };
     const hadleRepairStatus = () => {
         navigate('/repair-status')
     }
-    
+
     const handleCreateTechician = () => {
         navigate('/create-techinician')
+    }
+    const handleStaticsRepair = () => {
+        navigate('/statics-repair')
     }
 
     return (
@@ -212,7 +227,7 @@ function StaticsRepair() {
                                         >
                                             เพิ่มช่าง
                                         </button>
-                                        
+
                                     )}
                                     <button
                                         onClick={handleLogout}
@@ -240,21 +255,55 @@ function StaticsRepair() {
                 {/* Mobile Menu */}
                 {isMenuOpen && (
                     <div className="md:hidden mt-2 space-y-2">
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                        <button onClick={Returntohomepage} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             หน้าหลัก
-                        </a>
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                        </button>
+                        <button onClick={hadleRepairStatus} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             สถานะการแจ้งซ่อม
-                        </a>
+                        </button>
                         <button onClick={handleRequestRepair} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             แจ้งปัญหา/แจ้งซ่อม
                         </button>
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                        <button onClick={handleStaticsRepair} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             สถิติการแจ้งซ่อม
-                        </a>
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
-                            เข้าสู่ระบบ
-                        </a>
+                        </button>
+                        <button onClick={toggleDropdown} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                            <span>{userEmail ? userEmail : 'เข้าสู่ระบบ'}</span>
+                        </button>
+                        {isDropdownOpen && (
+                            <div className="absolute right-32 mt-10 z-10 w-40 bg-white rounded-md shadow-lg">
+                                <div className="py-1">
+                                    {/* ตรวจสอบ Role ก่อนแสดงปุ่มจัดการผู้ใช้ */}
+                                    {userRole === 'ADMIN' && (
+                                        <button
+                                            onClick={handleManageUser}
+                                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                        >
+                                            จัดการผู้ใช้
+                                        </button>
+
+                                    )}
+                                    {userRole === 'ADMIN' && (
+                                        <button
+                                            onClick={handleCreateTechician}
+                                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                        >
+                                            เพิ่มช่าง
+                                        </button>
+
+                                    )}
+                                    <button
+                                        onClick={handleLogout}
+                                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </nav>

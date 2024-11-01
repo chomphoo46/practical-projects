@@ -27,7 +27,7 @@ function RepairRequest() {
 
             if (profileResponse.status === 200) {
                 const profileData = await profileResponse.json();
-                console.log(profileData)
+                //console.log(profileData)
 
                 setUserEmail(profileData.email);
                 setUserRole(profileData.role); // ตั้งค่า role ที่นี่
@@ -161,7 +161,6 @@ function RepairRequest() {
     const Administrator = () => {
         navigate('/Administrator');  // นำทางไปที่หน้าแอดมิน
     };
-
     const handleManageUser = () => {
         if (userRole === 'ADMIN') {
             // navigate('/manager-users', { state: { userEmail} });
@@ -170,8 +169,6 @@ function RepairRequest() {
             alert('คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
         }
     };
-
-
     const handleStaticsRepair = () => {
         navigate('/statics-repair');  // นำทางไปที่หน้าสถิติการแจ้งซ่อม
     };
@@ -261,21 +258,55 @@ function RepairRequest() {
                 {/* Mobile Menu */}
                 {isMenuOpen && (
                     <div className="md:hidden mt-2 space-y-2">
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                        <button onClick={Returntohomepage} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             หน้าหลัก
-                        </a>
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                        </button>
+                        <button onClick={hadleRepairStatus} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             สถานะการแจ้งซ่อม
-                        </a>
+                        </button>
                         <button onClick={handleRequestRepair} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             แจ้งปัญหา/แจ้งซ่อม
                         </button>
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                        <button  onClick={handleStaticsRepair} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             สถิติการแจ้งซ่อม
-                        </a>
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
-                            เข้าสู่ระบบ
-                        </a>
+                        </button>
+                        <button onClick={toggleDropdown} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                            <span>{userEmail ? userEmail : 'เข้าสู่ระบบ'}</span>
+                        </button>
+                        {isDropdownOpen && (
+                            <div className="absolute right-32 mt-10 z-10 w-40 bg-white rounded-md shadow-lg">
+                                <div className="py-1">
+                                    {/* ตรวจสอบ Role ก่อนแสดงปุ่มจัดการผู้ใช้ */}
+                                    {userRole === 'ADMIN' && (
+                                        <button
+                                            onClick={handleManageUser}
+                                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                        >
+                                            จัดการผู้ใช้
+                                        </button>
+                                        
+                                    )}
+                                    {userRole === 'ADMIN' && (
+                                        <button
+                                            onClick={handleCreateTechician}
+                                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                        >
+                                            เพิ่มช่าง
+                                        </button>
+                                        
+                                    )}
+                                    <button
+                                        onClick={handleLogout}
+                                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </nav>
