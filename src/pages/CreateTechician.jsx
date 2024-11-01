@@ -283,50 +283,50 @@ function CreateTechician() {
                         </button>
                     </div>
                 </div>
-
                 {/* Mobile Menu */}
                 {isMenuOpen && (
                     <div className="md:hidden mt-2 space-y-2">
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                        <button onClick={Returntohomepage} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             หน้าหลัก
-                        </a>
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                        </button>
+                        <button onClick={hadleRepairStatus} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             สถานะการแจ้งซ่อม
-                        </a>
+                        </button>
                         <button onClick={handleRequestRepair} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             แจ้งปัญหา/แจ้งซ่อม
                         </button>
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                        <button onClick={handleStaticsRepair} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
                             สถิติการแจ้งซ่อม
-                        </a>
-                        <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
-                            เข้าสู่ระบบ
-                        </a>
+                        </button>
+                        <button onClick={toggleDropdown} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
+                            <span>{userEmail ? userEmail : 'เข้าสู่ระบบ'}</span>
+                        </button>
+                        {isDropdownOpen && (
+                            <div className="absolute right-32 mt-10 z-10 w-40 bg-white rounded-md shadow-lg">
+                                <div className="py-1">
+                                    {/* ตรวจสอบ Role ก่อนแสดงปุ่มจัดการผู้ใช้ */}
+                                    {userRole === 'ADMIN' && (
+                                        <button
+                                            onClick={handleManageUser}
+                                            style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                        >
+                                            จัดการผู้ใช้
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={handleLogout}
+                                        style={{ fontFamily: 'MyCustomFont2', fontSize: 18 }}
+                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </nav>
-
-            {/* Mobile Menu */}
-            {isMenuOpen && (
-                <div className="md:hidden mt-2 space-y-2">
-                    <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
-                        หน้าหลัก
-                    </a>
-                    <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
-                        สถานะการแจ้งซ่อม
-                    </a>
-                    <button onClick={handleRequestRepair} className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
-                        แจ้งปัญหา/แจ้งซ่อม
-                    </button>
-                    <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
-                        สถิติการแจ้งซ่อม
-                    </a>
-                    <a href="#" className="block text-white px-4 py-2 hover:bg-[#ff5f00] transition">
-                        เข้าสู่ระบบ
-                    </a>
-                </div>
-            )}
-
             <div className="bg-gray-100 p-10 " style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>
                 <h2 className="text-4xl mb-4 text-center">เพิ่มช่าง</h2>
                 <div className="max-w-2xl mx-auto mx-auto bg-white shadow-md rounded-3xl p-6">
@@ -393,7 +393,7 @@ function CreateTechician() {
                         <div className="mb-4">
                             <label className="block text-back text-xl font-bold mb-2">Email or UserId</label>
                             <div className="flex items-center bg-white border border-gray-300 rounded-md shadow-sm p-1 space-x-2">
-                                <div className="w-40"  style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>
+                                <div className="w-40" style={{ fontFamily: 'MyCustomFont', fontSize: 20 }}>
                                     <Select
                                         options={categoryOptions}
                                         onChange={handleCategoryChange}
