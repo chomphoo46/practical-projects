@@ -206,7 +206,7 @@ function ManagerUsers() {
     const openEditModal = (user) => {
         setSelectedUser(user); // ตั้งค่า selectedUser เป็นผู้ใช้ที่ต้องการแก้ไข
 
-        if (user.role === 'TECHNICIAN' && user.technician) {
+        if (user.technician) {
             setTechnicianDetails({
                 firstName: user.technician.firstName,
                 lastName: user.technician.lastName,
@@ -265,7 +265,7 @@ function ManagerUsers() {
             console.log("อัปเดต Role สำเร็จ:", selectedUser);
 
             // เฉพาะเมื่อมีข้อมูล technician และ modal ของ technician เปิดอยู่
-            if (selectedUser.role === "TECHNICIAN" && selectedUser.technician) {
+            if (selectedUser.technician) {
                 const technicianDataUpdate = await fetch(`http://localhost:3000/api/technicians/${selectedUser.id}`, {
                     method: 'PUT',
                     credentials: 'include',
